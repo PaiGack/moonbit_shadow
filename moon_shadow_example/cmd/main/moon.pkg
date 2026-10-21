@@ -1,0 +1,10 @@
+import {
+  "username/moon_shadow",
+  "username/moon_shadow_example" @example,
+}
+
+options(
+  overrides: [ "username/moon_shadow_example/shadow_impl" ],
+)
+
+pkgtype(kind: "executable")
