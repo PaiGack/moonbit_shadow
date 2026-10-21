@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Build the generator
+        run: moon build modinfo_gen --target js
+      - name: Check and test
+        run: |
+          moon check --target wasm-gc
+          moon test --target wasm-gc
+      - name: Generated file must be up to date
+        run: git diff --exit-code modinfo/module_info.mbt

@@ -1,0 +1,5 @@
+import {
+  "nrzhangsan/moon_shadow/modinfo",
+}
+
+pkgtype(kind: "library")
