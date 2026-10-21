@@ -1,5 +1,0 @@
-// import {
-//   "username/moon_shadow" @lib,
-// }
-
-pkgtype(kind: "executable")

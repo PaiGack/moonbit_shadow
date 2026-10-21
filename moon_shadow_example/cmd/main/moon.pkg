@@ -1,0 +1,6 @@
+import {
+  "nrzhangsan/moon_shadow/modinfo",
+  "nrzhangsan/moon_shadow_example",
+}
+
+pkgtype(kind: "executable")
