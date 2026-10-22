@@ -1,0 +1,8 @@
+virtual(has_default: true)
+
+rule(
+  name: "gen",
+  command: "moon run --target js --target-dir _build/gen gen -- $input $output",
+)
+
+dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")

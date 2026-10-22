@@ -1,4 +1,4 @@
 members = [
   ".",
-  "moon_shadow_example",
+  "./moon_shadow_example",
 ]

@@ -4,6 +4,8 @@ package "nrzhangsan/moon_shadow_example"
 // Values
 pub fn describe() -> String
 
+pub fn own_metadata() -> String
+
 // Errors
 
 // Types and methods
