@@ -10,3 +10,10 @@ rule(
 )
 
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
+
+rule(
+  name: "init",
+  command: "moon run --target js --target-dir _build/init init",
+)
+
+dev_build(rule: "init", input: "../moon.mod", output: ".init")
