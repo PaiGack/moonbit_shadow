@@ -1,7 +1,7 @@
 # moon_shadow
 
-Read a MoonBit module's own `moon.mod` metadata at **runtime**, without
-shipping `moon.mod` and without touching the filesystem.
+在**运行时**读取 MoonBit 模块自身的 `moon.mod` 元数据——既不需要随包分发
+`moon.mod`，也不需要访问文件系统。
 
 ```moonbit nocheck
 let info = @moon_shadow.current()
@@ -11,16 +11,16 @@ println(info.long_version())                // "PaiGack/moon_shadow@0.1.0"
 println(info.dep("moonbitlang/moon_config")) // Some(...)
 ```
 
-## Using it in your own module
+## 在自己的模块中使用
 
-1. Depend on the published package:
+1. 依赖已发布的包：
 
 ```
 moon add PaiGack/moon_shadow
 ```
 
-2. Create a `shadow` package that implements the virtual package and keeps
-   the implementation fresh from your `moon.mod`. One file, `shadow/moon.pkg`:
+2. 创建一个 `shadow` 包来实现该虚拟包，并让实现始终与你的 `moon.mod`
+   保持同步。只需要一个文件，`shadow/moon.pkg`：
 
 ```
 import {
@@ -31,24 +31,22 @@ virtual(implement: "PaiGack/moon_shadow/shadow")
 
 rule(
   name: "gen",
-  command: "moon run --target js --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen/main.mbt -- \"$input\" \"$output\"",
+  command: "moon run --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen/main.mbt -- \"$input\" \"$output\"",
 )
 
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
 ```
 
-   The `gen` rule runs on every `moon check` / `moon build` / `moon run` — release
-   builds included, pre-build rules are not debug-only — and writes
-   `shadow/generated.mbt` from your `moon.mod`. It runs the generator
-   straight out of `.mooncakes`, where `moon add` stages the dependency, so
-   nothing has to be checked out beside your module; the separate
-   `--target-dir` keeps the generator's own build artifacts out of the main
-   `_build`. Swap `--target js` for `--target native` if you would rather not
-   need `node` on the machine.
+   `gen` 规则在每次 `moon check` / `moon build` / `moon run` 时都会运行——
+   包括 release 构建，pre-build 规则并非 debug 专用——它会用你的
+   `moon.mod` 生成 `shadow/generated.mbt`。生成器直接从 `.mooncakes`
+   运行，`moon add` 会把依赖暂存在那里，因此模块旁边不需要检出任何
+   东西；单独的 `--target-dir` 让生成器自己的构建产物不进入主 `_build`。
 
-3. Point the packages that read the metadata at your implementation — the
-   import, plus the override, in every `moon.pkg` whose build reaches
-   `@moon_shadow.current()`:
+   也可以不手写：把 `moon_shadow_example/shadow/` 整个复制到你的模块里。
+
+3. 让读取元数据的包指向你的实现——在每一个构建路径会经过
+   `@moon_shadow.current()` 的 `moon.pkg` 里加上 import 和 override：
 
 ```
 import {
@@ -60,95 +58,80 @@ options(
 )
 ```
 
-4. Run `moon check` once and you are done. From then on every build
-   regenerates `shadow/generated.mbt` whenever `moon.mod` changes, and
-   `@moon_shadow.current()` reports your module's metadata.
+## 工作原理
 
-   Committing `shadow/generated.mbt` is cheap insurance: a clone that does not
-   touch `moon.mod` keeps building even if the rule cannot run.
-
-`moon_shadow_example/` is this setup, end to end.
-
-## How it works
-
-`moon.mod` is read once, at build time, and the values are compiled into the
-artifact:
+`moon.mod` 在构建时被读取一次，值随后被编译进产物：
 
 ```
 moon.mod --(gen rule)--> shadow/generated.mbt --(compile)--> current()
 ```
 
-At runtime there is no file I/O, no `git` and no environment sniffing — just
-struct field reads.
+运行时没有文件 I/O、没有 `git`、没有环境变量嗅探——只有结构体字段读取。
 
-The metadata crosses the build boundary through the virtual package
-`PaiGack/moon_shadow/shadow`, which exposes a single accessor:
+元数据通过虚拟包 `PaiGack/moon_shadow/shadow` 跨越构建边界，它只暴露
+一个访问函数：
 
 ```moonbit nocheck
 pub fn module_info() -> @core.ModuleInfo
 ```
 
-The `shadow` package ships a default implementation generated from *this*
-module's `moon.mod`. A consumer points `options(overrides: [...])` at its own
-implementation — the one generated from *its* `moon.mod` — and `current()`
-starts reporting that module's metadata instead.
+`shadow` 包自带一份从*本*模块的 `moon.mod` 生成的默认实现。使用者通过
+`options(overrides: [...])` 指向自己的实现——即从*它自己*的 `moon.mod`
+生成的那份——`current()` 便会转而报告该模块的元数据。
 
-The `moon.mod` DSL is parsed by
-[`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config);
-there is no hand-written parser here, so diagnostics for duplicate or unknown
-keys come along for free.
+`moon.mod` 的 DSL 由
+[`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config)
+解析
 
 ## API
 
-| Name | Description |
+| 名称 | 说明 |
 |---|---|
-| `current()` | `ModuleInfo` of the module that was built |
-| `ModuleInfo::dep` | look a dependency up by module name |
-| `ModuleInfo::long_version` | `"name@version"`, the shape `moon add` takes |
-| `ModuleInfo::to_long_version_string` | `"name version description"`, for `--version` output |
-| fields | `name` `version` `description` `license` `repository` `readme` `keywords` `preferred_target` `supported_targets` `deps` |
+| `current()` | 被构建模块的 `ModuleInfo` |
+| `ModuleInfo::dep` | 按模块名查找依赖 |
+| `ModuleInfo::long_version` | `"name@version"`，`moon add` 接受的格式 |
+| `ModuleInfo::to_long_version_string` | `"name version description"`，用于 `--version` 输出 |
+| 字段 | `name` `version` `description` `license` `repository` `readme` `keywords` `preferred_target` `supported_targets` `deps` |
 
-## Repo layout
+## 仓库结构
 
 ```
-core/                ModuleInfo / Dependency, moon_config parsing, codegen
-gen/                 the generator executable, moon.mod -> implementation
-shadow/              virtual package + its generated default, gen rule
-moon_shadow.mbt      the public API: current()
-moon_shadow_example/ a consumer module, exactly the setup above
+core/                ModuleInfo / Dependency、moon_config 解析、代码生成
+gen/                 生成器可执行文件，moon.mod -> 实现文件
+shadow/              虚拟包及其生成的默认实现、gen 规则
+moon_shadow.mbt      公共 API：current()
+moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
 ```
 
-## Behaviour worth knowing
+## 需要了解的行为
 
-These come from how `moon` handles virtual packages and pre-build rules, and
-they shape what this library can promise:
+以下都源于 `moon` 处理虚拟包和 pre-build 规则的方式，它们决定了本库
+能做出哪些承诺：
 
-- **A `moon.pkg`-declared virtual package must expose functions, not values.**
-  `moon` type-checks a virtual package's implementations against `pkg.mbti`, and
-  a `pub let` of a type from another package fails that check even though it
-  compiles in the implementing package. Hence `module_info()` rather than
-  `module_info`.
-- **`current()` describes whoever provided the implementation**, not whoever
-  called it. `moon_shadow_example/` shows both sides: without an override you
-  get the library's baked-in values, with one you get your own.
-- **A module cannot override its own virtual package.** That is why the example
-  is a separate module rather than another package inside `moon_shadow`.
-- **A dependency from the registry never runs build rules.** MoonBit skips a
-  dependency's pre-build steps when it is consumed from the registry, so this
-  library cannot set your module up for you: the `shadow` package above is
-  yours to create, and the `gen` rule inside it is what keeps
-  `generated.mbt` fresh. What the library ships in `shadow/` is only the
-  default implementation for consumers who never override.
-- **`overrides` is per-package.** Every package whose build reaches the virtual
-  package needs its own `options(overrides: [...])` — hence the example carries
-  one in both its root package and `cmd/main`.
-- **The `gen` rule reaches the generator through `.mooncakes`**, moon's staging
-  layout for registry dependencies — the only copy of the library a registry
-  consumer has on disk, and the path carries no version, so upgrades keep it.
-  It is an internal layout: if a future moon moves it, the rule fails with
-  `No such file or directory` the next time it runs — on any build, release
-  included, because pre-build rules are not debug-only. Committing
-  `generated.mbt` limits the damage to clones that go on to edit `moon.mod`.
-- **Escapes are decoded once.** `moon_config` returns string literals in their
-  raw source form (`"a \"b\""` yields `a \"b\"`), so `core` unescapes before
-  re-emitting them; otherwise every regeneration would double the backslashes.
+- **`moon.pkg` 声明的虚拟包必须暴露函数，不能是值。** `moon` 会用
+  `pkg.mbti` 类型检查虚拟包的各个实现，而一个来自其他包类型的
+  `pub let` 会通不过这个检查——尽管它在实现包里能编译。因此是
+  `module_info()` 而不是 `module_info`。
+- **`current()` 描述的是提供实现的人**，不是调用它的人。
+  `moon_shadow_example/` 展示了两种情况：没有 override 时得到库
+  baked-in 的值，有 override 时得到你自己的。
+- **模块不能 override 自己的虚拟包。** 这就是示例之所以是独立模块、
+  而不是 `moon_shadow` 内另一个包的原因。
+- **来自 registry 的依赖不会运行构建规则。** MoonBit 会跳过 registry
+  依赖被消费时的 pre-build 步骤，所以本库无法替你完成模块的配置：
+  上面的 `shadow` 包需要你自己创建，里面的 `gen` 规则负责让
+  `generated.mbt` 保持新鲜。库在 `shadow/` 里附带的只是给从不
+  override 的使用者的默认实现。
+- **`overrides` 是 per-package 的。** 每个构建路径会到达虚拟包的包
+  都需要自己的 `options(overrides: [...])`——因此示例在根包和
+  `cmd/main` 里各写了一份。
+- **`gen` 规则通过 `.mooncakes` 找到生成器**，即 moon 为 registry
+  依赖准备的暂存布局——registry 使用者磁盘上本库的唯一副本，且路径
+  不含版本号，升级不受影响。它是内部布局：如果未来的 moon 改动了它，
+  规则下次运行时会以 `No such file or directory` 失败——在任何构建上，
+  包括 release，因为 pre-build 规则并非 debug 专用。提交
+  `generated.mbt` 可以把损失限制在「克隆之后又去改 `moon.mod`」
+  的场景。
+- **转义只解码一次。** `moon_config` 返回的字符串字面量是源码原始
+  形式（`"a \"b\""` 得到 `a \"b\"`），因此 `core` 会在重新生成前
+  做一次反转义；否则每次重新生成都会让反斜杠翻倍。
