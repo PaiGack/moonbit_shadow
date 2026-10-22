@@ -5,3 +5,7 @@ target
 .mooncakes/
 .moonagent/
 tmp/
+# output declared by the init dev_build rule in shadow/moon.pkg
+.Trash-0
+tmp
+
