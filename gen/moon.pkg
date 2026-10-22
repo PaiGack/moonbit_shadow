@@ -9,6 +9,10 @@ import {
 pkgtype(kind: "executable")
 
 options(
+  // `encoding/utf8` is only imported by `run_native.mbt`; every other backend
+  // would report it as unused, so the warning code is silenced next to the
+  // import it is about.
+  warn_list: "-unused_package",
   targets: {
     "run_js.mbt": [ "js" ],
     "run_none.mbt": [ "wasm", "wasm-gc" ],
