@@ -1,14 +1,18 @@
 name = "nrzhangsan/moon_shadow_example"
 
-version = "0.1.0"
+version = "0.2.0"
 
 readme = "README.mbt.md"
 
+repository = ""
+
 license = "Apache-2.0"
+
+keywords = [ "shadow", "example" ]
 
 preferred_target = "wasm-gc"
 
-description = "Example: read this module's own moon.mod metadata at runtime"
+description = "How to read your own moon.mod at runtime with moon_shadow."
 
 import {
   "nrzhangsan/moon_shadow@0.1.0",

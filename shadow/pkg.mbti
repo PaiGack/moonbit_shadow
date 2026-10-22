@@ -1,0 +1,17 @@
+package "nrzhangsan/moon_shadow/shadow"
+
+fn module_name() -> String
+
+fn module_version() -> String
+
+fn module_description() -> String
+
+fn module_license() -> String
+
+fn module_repository() -> String
+
+fn module_readme() -> String
+
+fn module_keywords() -> Array[String]
+
+fn module_preferred_target() -> String

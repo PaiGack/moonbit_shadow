@@ -1,63 +1,79 @@
-# nrzhangsan/moon_shadow
+# moon_shadow
 
-MoonBit 模块的构建期元信息，思路对标 [shadow-rs](https://github.com/baoyachi/shadow-rs)：
-把 `moon.mod` 里的 name / version / deps 等编进产物，运行时不用再读文件。
+Read a MoonBit module's own `moon.mod` metadata at **runtime**, without
+shipping `moon.mod` and without touching the filesystem.
 
-## 用法
-
-```moonbit
-fn main {
-  let info = @modinfo.current()
-  println("${info.name} ${info.version}")
-  println("license: ${info.license}")
-  for dep in info.deps {
-    println("  ${dep.name} = ${dep.version}")
-  }
-}
+```moonbit nocheck
+let info = @moon_shadow.current()
+println(info.name)           // "nrzhangsan/moon_shadow"
+println(info.version)        // "0.1.0"
+println(info.long_version()) // "nrzhangsan/moon_shadow@0.1.0"
 ```
 
-`moon.pkg` 里加上：
+## How it works
 
-```text
-import {
-  "nrzhangsan/moon_shadow/modinfo",
-}
+`moon.mod` is read once, at build time. A `dev_build` rule regenerates
+`shadow/generated.mbt`, so the values are baked into the binary:
+
+```
+moon.mod --(gen rule)--> shadow/generated.mbt --(compile)--> current()
 ```
 
-运行产物时不需要 `moon.mod`：元信息是编译期常量，随二进制走。
+At runtime there is no file I/O, no `git` and no environment sniffing — just
+struct field reads.
 
-## 结构
+The metadata crosses the build boundary through the virtual package
+`nrzhangsan/moon_shadow/shadow`. That indirection is what lets a *consumer*
+supply its own values instead of the library's.
 
-| 包 | 作用 |
+The `moon.mod` DSL itself is parsed by
+[`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config)
+rather than by hand, so diagnostics for duplicate or unknown keys come for free.
+
+## API
+
+| Name | Description |
 |---|---|
-| `modinfo_types` | `ModuleInfo` / `Dependency` 数据结构 |
-| `modfile` | 用 `moonbitlang/moon_config` 解析 `moon.mod` 源码（纯函数，好测） |
-| `modinfo` | 虚拟包，`current()` 返回编进产物的元信息 |
-| `modinfo_gen_codegen` | `ModuleInfo` → `module_info.mbt` 源码渲染（纯函数） |
-| `modinfo_gen` | 命令行：读 `moon.mod` 写 `module_info.mbt` |
-| `moon_shadow_example` | 独立示例模块，演示怎么用 |
+| `current()` | `ModuleInfo` of the module that pulled the library in |
+| `ModuleInfo::long_version` | `"name@version"`, the shape `moon add` takes |
+| fields | `name` `version` `description` `license` `repository` `readme` `keywords` `preferred_target` |
 
-## 生成物怎么更新
+## Repo layout
 
-`modinfo/module_info.mbt` 是生成文件，**必须入库**。下游用户构建时不会跑预构建脚本，
-compiler 直接编译这份文件。
-
-刷新流程（本地和 CI 都一样）：
-
-```sh
-moon build modinfo_gen --target js   # 构建生成器，只需一次
-moon check --target wasm-gc          # 触发 dev_build，脚本用生成器重写 module_info.mbt
-git diff --exit-code modinfo/module_info.mbt
+```
+.                    moon_shadow, the library
+modfile/             parse_moon_mod: moon.mod source -> ModuleInfo + errors
+shadow/              virtual package, its generated implementation, gen rule
+gen/                 build-time generator, writes shadow/generated.mbt
+moon_shadow_example/ a real consumer of the library
+moon.work            workspace tying both modules together
 ```
 
-`dev_build` 里调用的 `scripts/gen_modinfo.sh` 不会嵌套调用 `moon`——外层 `moon`
-进程正持有 `_build/.moon-lock`，嵌套会死锁。脚本只负责把已构建好的生成器跑起来。
+## Behaviour worth knowing
 
-## 已知边界
+These come from how `moon` handles virtual packages and pre-build rules, and
+they shape what this library can promise:
 
-- `moon_config` 会把 `preferred_target = ...` 规范成 `preferred-target`，但
-  `options(preferred_target: ...)` 里的下划线写法保持原样，解析层两种都认。
-- 虚拟包的 `pkg.mbti` 里写不了顶层 `let`，所以生成物用
-  `warnings = "-missing_definition"` 压掉「不在 mbti 里」的提示。
-- example 用的是主模块编进去的元信息；要拿自己的元信息，需要在 example 里也放一份
-  `dev_build`，示例为了简洁没这么做。
+- **The module that owns `moon.mod` must own the implementation.** A module
+  cannot override its own virtual package, and a virtual package's `pkg.mbti`
+  only accepts flat function declarations. That is why `shadow/` declares one
+  `module_*` function per field instead of a struct with accessors.
+- **`current()` describes whoever provided the implementation**, not whoever
+  called it. `moon_shadow_example/` shows both sides: `describe()` goes through
+  `modinfo` and reports the library's baked-in values, while `own_metadata()`
+  imports the `shadow` virtual package directly and, with its
+  `overrides: [ "nrzhangsan/moon_shadow_example/shadow_impl" ]`, gets its own
+  `moon.mod` values.
+- **Downstream modules never run build rules.** `shadow/generated.mbt` is
+  committed, and consumers commit their own generated implementation too. After
+  changing `moon.mod`, run `moon check` and commit the result.
+- **Regeneration needs one command.** `moon build` / `moon check` run the rule;
+  if the output is missing, the very first run can pass before the file exists,
+  so run it twice on a fresh clone.
+- **The example's implementation has no build rule of its own.** `shadow_impl/`
+  sits inside a workspace member, and a pre-build rule there runs with the
+  example as cwd, where the `gen` package is not reachable. Refresh it by hand:
+  `moon run --target js --target-dir _build/gen gen -- moon_shadow_example/moon.mod moon_shadow_example/shadow_impl/generated.mbt`.
+- **`preferred_target` is normalized.** `moon_config` reports it as
+  `preferred-target`, while `options(preferred_target: ...)` keeps the
+  underscore form; the parser accepts both.

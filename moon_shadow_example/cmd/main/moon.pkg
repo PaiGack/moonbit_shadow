@@ -1,6 +1,10 @@
 import {
-  "nrzhangsan/moon_shadow/modinfo",
-  "nrzhangsan/moon_shadow_example",
+  "nrzhangsan/moon_shadow/modinfo" @moon_shadow_info,
+  "nrzhangsan/moon_shadow_example" @example,
 }
+
+options(
+  overrides: [ "nrzhangsan/moon_shadow_example/shadow_impl" ],
+)
 
 pkgtype(kind: "executable")
