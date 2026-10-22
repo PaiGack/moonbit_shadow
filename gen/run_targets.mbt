@@ -12,6 +12,14 @@ fn raw_run(program : String, args : Array[String]) -> (String, String)? {
 }
 
 ///|
+/// Native and llvm both link libc, so both spawn through `popen`. They share
+/// this file because a source file can only be listed under one `targets` key.
+#cfg(any(target="native", target="llvm"))
+fn raw_run(program : String, args : Array[String]) -> (String, String)? {
+  run_via_popen(program, args)
+}
+
+///|
 #cfg(target="js")
 fn split_spawn(raw : String) -> (String, String)? {
   if raw.is_empty() {

@@ -3,6 +3,7 @@ import {
   "PaiGack/moon_shadow/gitinfo",
   "moonbitlang/x/fs",
   "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
 }
 
 pkgtype(kind: "executable")
@@ -10,7 +11,7 @@ pkgtype(kind: "executable")
 options(
   targets: {
     "run_js.mbt": [ "js" ],
-    "run_none.mbt": [ "wasm", "native", "llvm" ],
-    "run_wasm_gc.mbt": [ "wasm-gc" ],
+    "run_none.mbt": [ "wasm", "wasm-gc" ],
+    "run_targets.mbt": [ "js", "native", "llvm" ],
   },
 )
