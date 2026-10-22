@@ -83,6 +83,18 @@ options(
 )
 ```
 
+## 需要 node
+
+生成器跑在 js 后端（`node`）上——只有那里能同步 spawn 一个进程去问 git。
+`moon` 从 `PATH` 里找 `node`，找不到就会在 prebuild 阶段报：
+
+```
+Failed to spawn command "node" ... Caused by: No such file or directory (os error 2)
+```
+
+装个 node（或把它的目录放进 `PATH`）即可。没有 git 不要紧：生成器会照常写出
+`git_info().available = false`，构建不会因此失败。
+
 ## 工作原理
 
 `moon.mod` 和 git 状态在构建时各被读取一次，值随后被编译进产物。运行时没有

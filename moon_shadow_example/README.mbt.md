@@ -19,6 +19,9 @@ Run it from this directory:
 moon run --target js cmd/main
 ```
 
+The generator behind that runs on node (see the top-level README, "需要 node");
+the example itself builds for `js`, `wasm-gc` and `native`.
+
 ## How the metadata gets in
 
 Both values are baked in at build time: `moon_shadow` reads metadata through
