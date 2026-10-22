@@ -18,6 +18,6 @@ preferred_target = "wasm-gc"
 description = "Read a MoonBit module's own moon.mod and git metadata at runtime, baked in at build time."
 
 import {
-  "moonbitlang/moon_config@0.4.4",
+  "moonbitlang/moon_config@0.4.5",
   "moonbitlang/x@0.5.6",
 }
