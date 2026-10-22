@@ -6,7 +6,7 @@ pub fn describe() -> String {
 }
 
 ///|
-/// The same values as seen by this module's own `shadow_impl` override.
+/// The same values as seen by this module's own `shadow/` override.
 pub fn own_metadata() -> String {
   let info = @shadow.module_info()
   "\{info.name}@\{info.version} (\{info.preferred_target})"

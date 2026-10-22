@@ -25,4 +25,4 @@ jobs:
       - name: Generated implementations must be up to date
         run: |
           git diff --exit-code shadow/generated.mbt
-          git diff --exit-code moon_shadow_example/shadow_impl/generated.mbt
+          git diff --exit-code moon_shadow_example/shadow/generated.mbt

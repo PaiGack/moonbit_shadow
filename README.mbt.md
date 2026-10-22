@@ -63,13 +63,13 @@ moon_shadow_example/ a consumer module, with its own moon.work workspace
 ## Using it in your own module
 
 1. Depend on `nrzhangsan/moon_shadow`.
-2. Copy `moon_shadow_example/shadow_impl/` into your module and swap the module
+2. Copy `moon_shadow_example/shadow/` into your module and swap the module
    name in `moon.pkg`.
 3. Point the packages that need the metadata at it:
 
 ```moonbit nocheck
 options(
-  overrides: [ "your/module/shadow_impl" ],
+  overrides: [ "your/module/shadow" ],
 )
 
 rule(
@@ -84,7 +84,7 @@ relative to it. `gen/main.mbt` is run as a standalone file, so your module does
 not need a dependency on it — only a path. Keep it in a `moon.work` beside the
 library, as `moon_shadow_example/` does, and that path stays a plain `../`.
 
-4. Run `moon check` once and commit `shadow_impl/generated.mbt`. From then on
+4. Run `moon check` once and commit `shadow/generated.mbt`. From then on
    `moon check` / `moon run` regenerate it whenever `moon.mod` changes.
 
 `moon_shadow_example/` is exactly this setup, end to end.
