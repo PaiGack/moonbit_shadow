@@ -15,7 +15,7 @@ test "parse moon.mod metadata and deps" {
     #|  "moonbitlang/moon_config@0.4.4",
     #|}
     #|
-  let parsed = @core.parse_moon_mod(source)
+  let parsed = @mooninfo.parse_moon_mod(source)
   assert_eq(parsed.errors, [])
   let info = parsed.info
   assert_eq(info.name, "acme/demo")
@@ -35,7 +35,7 @@ test "parse moon.mod metadata and deps" {
 
 ///|
 test "missing fields stay empty" {
-  let parsed = @core.parse_moon_mod("name = \"acme/min\"\n")
+  let parsed = @mooninfo.parse_moon_mod("name = \"acme/min\"\n")
   assert_eq(parsed.errors, [])
   assert_eq(parsed.info.name, "acme/min")
   assert_eq(parsed.info.version, "")
@@ -45,7 +45,7 @@ test "missing fields stay empty" {
 
 ///|
 test "diagnostics come from moon_config" {
-  let parsed = @core.parse_moon_mod(
+  let parsed = @mooninfo.parse_moon_mod(
     "name = \"a/one\"\nname = \"a/two\"\nbogus = 1\n",
   )
   assert_eq(parsed.info.name, "a/one")
@@ -54,7 +54,7 @@ test "diagnostics come from moon_config" {
 
 ///|
 test "options style keys are flattened" {
-  let parsed = @core.parse_moon_mod(
+  let parsed = @mooninfo.parse_moon_mod(
     "name = \"acme/opt\"\noptions(preferred_target: \"js\")\n",
   )
   assert_eq(parsed.errors, [])
@@ -66,7 +66,7 @@ test "escapes are decoded before they reach ModuleInfo" {
   let source = "name = \"acme/demo\"\n" +
     "description = \"a \\\"quoted\\\" thing\"\n" +
     "keywords = [\"a\\\"b\"]\n"
-  let info = @core.parse_moon_mod(source).info
+  let info = @mooninfo.parse_moon_mod(source).info
   assert_eq(info.description, "a \"quoted\" thing")
   assert_eq(info.keywords, ["a\"b"])
 }

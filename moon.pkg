@@ -1,5 +1,5 @@
 import {
-  "PaiGack/moon_shadow/core",
+  "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
   "PaiGack/moon_shadow/shadow",
 }
