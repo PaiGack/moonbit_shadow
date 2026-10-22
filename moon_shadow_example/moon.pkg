@@ -1,8 +1,8 @@
 import {
-  "nrzhangsan/moon_shadow",
-  "nrzhangsan/moon_shadow/shadow",
+  "PaiGack/moon_shadow",
+  "PaiGack/moon_shadow/shadow",
 }
 
 options(
-  overrides: [ "nrzhangsan/moon_shadow_example/shadow" ],
+  overrides: [ "PaiGack/moon_shadow_example/shadow" ],
 )

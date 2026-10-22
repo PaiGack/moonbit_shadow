@@ -5,11 +5,89 @@ shipping `moon.mod` and without touching the filesystem.
 
 ```moonbit nocheck
 let info = @moon_shadow.current()
-println(info.name)                          // "nrzhangsan/moon_shadow"
+println(info.name)                          // "PaiGack/moon_shadow"
 println(info.version)                       // "0.1.0"
-println(info.long_version())                // "nrzhangsan/moon_shadow@0.1.0"
+println(info.long_version())                // "PaiGack/moon_shadow@0.1.0"
 println(info.dep("moonbitlang/moon_config")) // Some(...)
 ```
+
+## Using it in your own module
+
+1. Depend on `PaiGack/moon_shadow`, with the library in a `moon.work`
+   beside your module — the setup `moon_shadow_example/` shows:
+
+```
+moon add PaiGack/moon_shadow
+```
+
+2. Run `moon check`. The `init` rule in the library's `shadow/moon.pkg`
+   discovers your module — it looks for the `moon.mod` files near the library
+   that import it — and writes everything the manual setup used to ask for:
+
+```
+moon_shadow: initialized /path/to/your/module
+  moon.work: added member ..
+  shadow/moon.pkg: created
+  shadow/generated.mbt: created
+  moon.pkg: added import PaiGack/moon_shadow
+  moon.pkg: added overrides your/module/shadow
+```
+
+3. Run `moon check` once more and you are done. From then on `moon check` /
+   `moon run` regenerate `shadow/generated.mbt` whenever `moon.mod` changes,
+   and `@moon_shadow.current()` reports your module's metadata.
+
+To set one module up by hand, point the `init` package at it explicitly —
+the same program the rule runs, with the directory as its argument:
+
+```moonbit nocheck
+moon run --target js --target-dir _build/init <path-to>/moon_shadow/init -- /path/to/your/module
+```
+
+Run it from the `moon_shadow` module root. It prints what it changed, is
+idempotent, and leaves an already set-up module untouched.
+
+### What the scaffold contains
+
+`init` writes two files and patches two, which is the whole manual setup:
+
+`shadow/moon.pkg` — implement the virtual package, and keep the
+implementation fresh from your `moon.mod`:
+
+```moonbit nocheck
+import {
+  "PaiGack/moon_shadow/core",
+}
+
+virtual(implement: "PaiGack/moon_shadow/shadow")
+
+rule(
+  name: "gen",
+  command: "moon run --target js --target-dir _build/gen <path-to>/moon_shadow/gen/main.mbt -- $input $output",
+)
+dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
+```
+
+The command runs in your module root, and `$input` / `$output` are paths
+relative to it. `gen/main.mbt` is run as a standalone file, so your module does
+not need a dependency on it — only a path.
+
+`shadow/generated.mbt` — rendered from your `moon.mod`, committed.
+
+Your root `moon.pkg` — the import, plus the override that points the packages
+reading the metadata at your implementation:
+
+```moonbit nocheck
+options(
+  overrides: [ "your/module/shadow" ],
+)
+```
+
+Your `moon.work` — the library as a member, so the `gen` command above can
+reach it.
+
+`moon_shadow_example/` is exactly this setup, end to end.
+
 
 ## How it works
 
@@ -33,7 +111,7 @@ consumer moon.mod --(init rule)--> shadow/ scaffold + overrides in moon.pkg
 ```
 
 The metadata crosses the build boundary through the virtual package
-`nrzhangsan/moon_shadow/shadow`, which exposes a single accessor:
+`PaiGack/moon_shadow/shadow`, which exposes a single accessor:
 
 ```moonbit nocheck
 pub fn module_info() -> @core.ModuleInfo
@@ -69,83 +147,6 @@ shadow/              virtual package + its generated default, gen + init rules
 moon_shadow.mbt      the public API: current()
 moon_shadow_example/ a consumer module, with its own moon.work workspace
 ```
-
-## Using it in your own module
-
-1. Depend on `nrzhangsan/moon_shadow`, with the library in a `moon.work`
-   beside your module — the setup `moon_shadow_example/` shows:
-
-```
-moon add nrzhangsan/moon_shadow
-```
-
-2. Run `moon check`. The `init` rule in the library's `shadow/moon.pkg`
-   discovers your module — it looks for the `moon.mod` files near the library
-   that import it — and writes everything the manual setup used to ask for:
-
-```
-moon_shadow: initialized /path/to/your/module
-  moon.work: added member ..
-  shadow/moon.pkg: created
-  shadow/generated.mbt: created
-  moon.pkg: added import nrzhangsan/moon_shadow
-  moon.pkg: added overrides your/module/shadow
-```
-
-3. Run `moon check` once more and you are done. From then on `moon check` /
-   `moon run` regenerate `shadow/generated.mbt` whenever `moon.mod` changes,
-   and `@moon_shadow.current()` reports your module's metadata.
-
-To set one module up by hand, point the `init` package at it explicitly —
-the same program the rule runs, with the directory as its argument:
-
-```moonbit nocheck
-moon run --target js --target-dir _build/init <path-to>/moon_shadow/init -- /path/to/your/module
-```
-
-Run it from the `moon_shadow` module root. It prints what it changed, is
-idempotent, and leaves an already set-up module untouched.
-
-### What the scaffold contains
-
-`init` writes two files and patches two, which is the whole manual setup:
-
-`shadow/moon.pkg` — implement the virtual package, and keep the
-implementation fresh from your `moon.mod`:
-
-```moonbit nocheck
-import {
-  "nrzhangsan/moon_shadow/core",
-}
-
-virtual(implement: "nrzhangsan/moon_shadow/shadow")
-
-rule(
-  name: "gen",
-  command: "moon run --target js --target-dir _build/gen <path-to>/moon_shadow/gen/main.mbt -- $input $output",
-)
-dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
-```
-
-The command runs in your module root, and `$input` / `$output` are paths
-relative to it. `gen/main.mbt` is run as a standalone file, so your module does
-not need a dependency on it — only a path.
-
-`shadow/generated.mbt` — rendered from your `moon.mod`, committed.
-
-Your root `moon.pkg` — the import, plus the override that points the packages
-reading the metadata at your implementation:
-
-```moonbit nocheck
-options(
-  overrides: [ "your/module/shadow" ],
-)
-```
-
-Your `moon.work` — the library as a member, so the `gen` command above can
-reach it.
-
-`moon_shadow_example/` is exactly this setup, end to end.
 
 ## Behaviour worth knowing
 

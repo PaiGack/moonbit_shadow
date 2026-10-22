@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "nrzhangsan/moon_shadow/core"
+package "PaiGack/moon_shadow/core"
 
 import {
   "moonbitlang/core/debug",
