@@ -1,3 +1,0 @@
-package "nrzhangsan/moon_shadow/modinfo"
-
-fn current() -> @modinfo_types.ModuleInfo

@@ -13,11 +13,16 @@ jobs:
         run: |
           curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
-      - name: Build the generator
-        run: moon build modinfo_gen --target js
-      - name: Check and test
+      - name: Check and test the library
         run: |
           moon check --target wasm-gc
           moon test --target wasm-gc
-      - name: Generated file must be up to date
-        run: git diff --exit-code modinfo/module_info.mbt
+      - name: Check and test the example workspace
+        working-directory: moon_shadow_example
+        run: |
+          moon check --target wasm-gc
+          moon test --target wasm-gc
+      - name: Generated implementations must be up to date
+        run: |
+          git diff --exit-code shadow/generated.mbt
+          git diff --exit-code moon_shadow_example/shadow_impl/generated.mbt

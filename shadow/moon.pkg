@@ -1,3 +1,7 @@
+import {
+  "nrzhangsan/moon_shadow/core",
+}
+
 virtual(has_default: true)
 
 rule(
