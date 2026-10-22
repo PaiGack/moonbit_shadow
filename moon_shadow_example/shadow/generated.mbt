@@ -3,7 +3,7 @@
 pub fn module_info() -> @core.ModuleInfo {
   {
     name: "PaiGack/moon_shadow_example",
-    version: "0.2.6",
+    version: "0.2.999",
     description: "How to read your own moon.mod at runtime with moon_shadow.",
     license: "Apache-2.0",
     repository: "",

@@ -1,6 +1,6 @@
 name = "PaiGack/moon_shadow_example"
 
-version = "0.2.8"
+version = "0.2.999"
 
 readme = "README.mbt.md"
 

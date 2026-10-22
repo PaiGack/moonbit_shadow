@@ -5,7 +5,7 @@ A module that reads **its own** `moon.mod` at runtime through `moon_shadow`.
 ```moonbit nocheck
 let info = @moon_shadow.current()
 println(info.name)    // "PaiGack/moon_shadow_example"
-println(info.version) // "0.2.6"
+println(info.version) // "0.2.8"
 ```
 
 Run it from this directory:
