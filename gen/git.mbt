@@ -9,28 +9,23 @@ fn git(cwd : String, args : Array[String]) -> String? {
 }
 
 ///|
-/// Whether `cwd` sits in a work tree at all. Every command below is allowed to
-/// fail; this one decides between "no git here" and "a repository with no tag".
-fn git_available(cwd : String) -> Bool {
-  match git(cwd, ["rev-parse", "--is-inside-work-tree"]) {
-    Some(out) => out.trim() == "true"
-    None => false
-  }
-}
-
-///|
-/// Collect the raw field values.
+/// The checkout at `cwd`, as a `GitInfo`.
+///
+/// The one question worth asking git separately is whether `cwd` is in a work
+/// tree at all, because no number of failed commands can tell "not a
+/// repository" from "a repository on a detached HEAD". That decides
+/// `available`; every other command is free to answer with nothing.
 ///
 /// `--untracked-files=no` for `status`: the generated file is committed, so
 /// counting untracked files would mark every build as dirty.
-fn collect_git_info(cwd : String) -> @gitinfo.RawGitInfo {
+fn collect_git_info(cwd : String) -> @gitinfo.GitInfo {
   let field = fn(args : Array[String]) {
     match git(cwd, args) {
       Some(out) => out
       None => ""
     }
   }
-  {
+  let raw : @gitinfo.RawGitInfo = {
     branch: field(["symbolic-ref", "--short", "-q", "HEAD"]),
     tag: field(["describe", "--tags", "--exact-match"]),
     describe: field(["describe", "--tags", "--always"]),
@@ -44,4 +39,15 @@ fn collect_git_info(cwd : String) -> @gitinfo.RawGitInfo {
       "rev-list", "--left-right", "--count", "HEAD...@{upstream}",
     ]),
   }
+  with_availability(cwd, raw.to_git_info())
+}
+
+///|
+/// `info` with `available` narrowed to whether `cwd` is inside a work tree.
+fn with_availability(cwd : String, info : @gitinfo.GitInfo) -> @gitinfo.GitInfo {
+  let available = match git(cwd, ["rev-parse", "--is-inside-work-tree"]) {
+    Some(out) => out.trim() == "true"
+    None => false
+  }
+  { ..info, available, }
 }
