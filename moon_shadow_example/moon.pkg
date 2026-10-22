@@ -4,5 +4,5 @@ import {
 }
 
 options(
-  overrides: [ "nrzhangsan/moon_shadow_example/shadow_impl" ],
+  overrides: [ "nrzhangsan/moon_shadow_example/shadow" ],
 )
