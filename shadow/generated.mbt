@@ -1,5 +1,5 @@
 ///|
-/// Generated from `moon.mod`. Do not edit; run `moon check` to refresh.
+/// Generated from `moon.mod`. Keep in sync when `moon.mod` changes.
 pub fn module_info() -> @core.ModuleInfo {
   {
     name: "PaiGack/moon_shadow",

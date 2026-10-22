@@ -32,7 +32,7 @@ fn quote_array(values : Array[String]) -> String {
 pub fn render_module_info(info : ModuleInfo) -> String {
   let lines : Array[String] = [
     "///|",
-    "/// Generated from `moon.mod`. Do not edit; run `moon check` to refresh.",
+    "/// Generated from `moon.mod`. Keep in sync when `moon.mod` changes.",
     "pub fn module_info() -> @core.ModuleInfo {",
     "  {",
     "    name: \{quote(info.name)},",
