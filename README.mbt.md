@@ -37,11 +37,14 @@ rule(
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
 ```
 
-   The `gen` rule runs on every `moon check` / `moon build` / `moon run` and
-   writes `shadow/generated.mbt` from your `moon.mod`. It runs the generator
+   The `gen` rule runs on every `moon check` / `moon build` / `moon run` — release
+   builds included, pre-build rules are not debug-only — and writes
+   `shadow/generated.mbt` from your `moon.mod`. It runs the generator
    straight out of `.mooncakes`, where `moon add` stages the dependency, so
-   nothing has to be checked out beside your module. Swap `--target js` for
-   `--target native` if you would rather not need `node` on the machine.
+   nothing has to be checked out beside your module; the separate
+   `--target-dir` keeps the generator's own build artifacts out of the main
+   `_build`. Swap `--target js` for `--target native` if you would rather not
+   need `node` on the machine.
 
 3. Point the packages that read the metadata at your implementation — the
    import, plus the override, in every `moon.pkg` whose build reaches
@@ -57,12 +60,12 @@ options(
 )
 ```
 
-4. Run `moon check` once and you are done. From then on `moon check` /
-   `moon run` regenerate `shadow/generated.mbt` whenever `moon.mod` changes,
-   and `@moon_shadow.current()` reports your module's metadata.
+4. Run `moon check` once and you are done. From then on every build
+   regenerates `shadow/generated.mbt` whenever `moon.mod` changes, and
+   `@moon_shadow.current()` reports your module's metadata.
 
-   Commit `shadow/generated.mbt`: `dev_build` rules do not run on release
-   builds, and a committed file keeps a clean clone building without one.
+   Committing `shadow/generated.mbt` is cheap insurance: a clone that does not
+   touch `moon.mod` keeps building even if the rule cannot run.
 
 `moon_shadow_example/` is this setup, end to end.
 
@@ -140,10 +143,12 @@ they shape what this library can promise:
   package needs its own `options(overrides: [...])` — hence the example carries
   one in both its root package and `cmd/main`.
 - **The `gen` rule reaches the generator through `.mooncakes`**, moon's staging
-  layout for registry dependencies. If a future moon changes that layout the
-  rule stops finding it; the generator then keeps the previous
-  `generated.mbt` rather than failing the build, which is one more reason to
-  commit the file.
+  layout for registry dependencies — the only copy of the library a registry
+  consumer has on disk, and the path carries no version, so upgrades keep it.
+  It is an internal layout: if a future moon moves it, the rule fails with
+  `No such file or directory` the next time it runs — on any build, release
+  included, because pre-build rules are not debug-only. Committing
+  `generated.mbt` limits the damage to clones that go on to edit `moon.mod`.
 - **Escapes are decoded once.** `moon_config` returns string literals in their
   raw source form (`"a \"b\""` yields `a \"b\"`), so `core` unescapes before
   re-emitting them; otherwise every regeneration would double the backslashes.
