@@ -1,4 +1,4 @@
-package "username/moon_shadow/shadow"
+package "nrzhangsan/moon_shadow/shadow"
 
 fn module_name() -> String
 

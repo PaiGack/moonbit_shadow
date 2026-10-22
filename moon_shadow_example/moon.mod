@@ -1,4 +1,4 @@
-name = "username/moon_shadow_example"
+name = "nrzhangsan/moon_shadow_example"
 
 version = "0.2.0"
 
@@ -10,10 +10,10 @@ license = "Apache-2.0"
 
 keywords = [ "shadow", "example" ]
 
-preferred_target = "wasm"
+preferred_target = "wasm-gc"
 
 description = "How to read your own moon.mod at runtime with moon_shadow."
 
 import {
-  "username/moon_shadow@0.1.0",
+  "nrzhangsan/moon_shadow@0.1.0",
 }

@@ -1,0 +1,7 @@
+import {
+  "moonbitlang/moon_config",
+  "nrzhangsan/moon_shadow/modinfo_types",
+  "moonbitlang/core/immut/vector",
+}
+
+pkgtype(kind: "library")

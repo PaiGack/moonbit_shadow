@@ -2,7 +2,7 @@
 /// Generated from `moon.mod` by the `gen` rule. Do not edit.
 /// Run `moon check` to refresh.
 pub fn module_name() -> String {
-  "username/moon_shadow"
+  "nrzhangsan/moon_shadow"
 }
 
 ///|
@@ -22,7 +22,7 @@ pub fn module_license() -> String {
 
 ///|
 pub fn module_repository() -> String {
-  ""
+  "https://cnb.cool/nrzhangsan/moon_shadow"
 }
 
 ///|
@@ -32,7 +32,7 @@ pub fn module_readme() -> String {
 
 ///|
 pub fn module_preferred_target() -> String {
-  "wasm"
+  "wasm-gc"
 }
 
 ///|

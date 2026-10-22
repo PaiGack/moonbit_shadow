@@ -1,0 +1,17 @@
+import {
+  "nrzhangsan/moon_shadow/modinfo_types",
+}
+
+virtual(has_default: true)
+
+pkgtype(kind: "library")
+
+formatter(ignore: [ "module_info.mbt" ])
+
+warnings = "-missing_definition"
+
+// 生成器先单独构建一次（参见 README 的 scripts/gen_modinfo.sh 说明），
+// 之后每次 check/build 都会由它按 moon.mod 刷新 module_info.mbt，并入库。
+rule(name: "modinfo", command: "sh scripts/gen_modinfo.sh $input $output")
+
+dev_build(rule: "modinfo", input: "../moon.mod", output: "module_info.mbt")
