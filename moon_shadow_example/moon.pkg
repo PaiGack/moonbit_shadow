@@ -1,6 +1,6 @@
 import {
-  "nrzhangsan/moon_shadow/modinfo" @moon_shadow_info,
-  "nrzhangsan/moon_shadow/shadow" @moon_shadow_shadow,
+  "nrzhangsan/moon_shadow",
+  "nrzhangsan/moon_shadow/shadow",
 }
 
 options(

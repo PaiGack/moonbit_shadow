@@ -1,11 +1,16 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "nrzhangsan/moon_shadow/modinfo_types"
+package "nrzhangsan/moon_shadow/core"
 
 import {
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn parse_moon_mod(name? : String, String) -> ParsedMoonMod
+
+pub fn render_module_info(ModuleInfo) -> String
+
+pub fn unescape(String) -> String
 
 // Errors
 
@@ -37,11 +42,17 @@ pub fn ModuleInfo::dep(Self, String) -> Dependency?
 pub fn ModuleInfo::empty() -> Self
 #deprecated
 pub fn ModuleInfo::equal(Self, Self) -> Bool
+pub fn ModuleInfo::long_version(Self) -> String
 #deprecated
 pub fn ModuleInfo::not_equal(Self, Self) -> Bool
 pub fn ModuleInfo::to_long_version_string(Self) -> String
 #deprecated
 pub fn ModuleInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ParsedMoonMod {
+  info : ModuleInfo
+  errors : Array[String]
+}
 
 // Type aliases
 

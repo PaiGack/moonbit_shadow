@@ -1,8 +1,0 @@
-import {
-  "nrzhangsan/moon_shadow/modfile",
-  "nrzhangsan/moon_shadow/modinfo_gen_codegen",
-  "moonbitlang/x/fs",
-  "moonbitlang/core/env",
-}
-
-pkgtype(kind: "executable")
