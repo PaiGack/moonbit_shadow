@@ -1,5 +1,5 @@
 ///|
-fn demo_info() -> @core.ModuleInfo {
+fn demo_info() -> @mooninfo.ModuleInfo {
   {
     name: "acme/demo",
     version: "1.2.3",
@@ -27,13 +27,13 @@ test "dep lookup" {
 ///|
 test "long version shapes" {
   assert_eq(demo_info().long_version(), "acme/demo@1.2.3")
-  assert_eq(@core.ModuleInfo::empty().long_version(), "")
+  assert_eq(@mooninfo.ModuleInfo::empty().long_version(), "")
   assert_eq(demo_info().to_long_version_string(), "acme/demo 1.2.3 demo module")
 }
 
 ///|
 test "empty info" {
-  let info = @core.ModuleInfo::empty()
+  let info = @mooninfo.ModuleInfo::empty()
   assert_eq(info.name, "")
   assert_eq(info.deps, [])
   assert_eq(info.to_long_version_string(), "")

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "PaiGack/moon_shadow/core"
+package "PaiGack/moon_shadow/mooninfo"
 
 import {
   "moonbitlang/core/debug",
@@ -8,7 +8,9 @@ import {
 // Values
 pub fn parse_moon_mod(name? : String, String) -> ParsedMoonMod
 
-pub fn render_module_info(ModuleInfo) -> String
+pub fn quote(String) -> String
+
+pub fn render_module_info(ModuleInfo, pkg_path~ : String) -> String
 
 pub fn unescape(String) -> String
 

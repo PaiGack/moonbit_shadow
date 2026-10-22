@@ -1,44 +1,46 @@
 ///|
-/// Same escaping rules as `core`: the values are re-emitted as MoonBit source.
-fn quote(value : String) -> String {
-  let buf = StringBuilder()
-  buf.write_char('"')
-  for ch in value {
-    match ch {
-      '"' => buf.write_string("\\\"")
-      '\\' => buf.write_string("\\\\")
-      '\n' => buf.write_string("\\n")
-      '\r' => buf.write_string("\\r")
-      '\t' => buf.write_string("\\t")
-      _ => buf.write_char(ch)
-    }
-  }
-  buf.write_char('"')
-  buf.to_string()
-}
-
-///|
-/// The whole implementation file: `module_info()` from `core`, plus
+/// The whole implementation file: `module_info()` from `mooninfo`, plus
 /// `git_info()`, which only `gen` knows how to shape.
 ///
 /// Deterministic by construction — no timestamp, no random — so regenerating
 /// from the same inputs yields no diff, and a committed `generated.mbt` never
 /// makes the work tree dirty behind the user's back.
-fn render(git : @gitinfo.GitInfo, module_block : String) -> String {
+///
+/// `git_path` is the full package path of `gitinfo`. A virtual
+/// implementation's `pkg.mbti` is written by hand, so the generated file spells
+/// the type the same way it does; a full path works no matter what aliases that
+/// package happens to declare. `mooninfo`'s renderer takes its own path for the
+/// same reason.
+fn quoted_line(name : String, quoted : String) -> String {
+  "    \{name}: \{quoted},"
+}
+
+///|
+fn render(
+  git : @gitinfo.GitInfo,
+  module_block : String,
+  git_path~ : String,
+) -> String {
+  let at_git = "@" + git_path
   let lines : Array[String] = [module_block]
   lines.push("///|")
   lines.push("/// Generated from the git checkout this module was built in.")
-  lines.push("pub fn git_info() -> @gitinfo.GitInfo {")
+  lines.push("pub fn git_info() -> \{at_git}.GitInfo {")
   lines.push("  {")
   lines.push("    available: \{git.available},")
-  lines.push("    branch: \{quote(git.branch)},")
-  lines.push("    tag: \{quote(git.tag)},")
-  lines.push("    describe: \{quote(git.describe)},")
-  lines.push("    commit: \{quote(git.commit)},")
-  lines.push("    short_commit: \{quote(git.short_commit)},")
-  lines.push("    commit_date: \{quote(git.commit_date)},")
-  lines.push("    author: \{quote(git.author)},")
-  lines.push("    email: \{quote(git.email)},")
+  for
+    pair in [
+      ("branch", git.branch),
+      ("tag", git.tag),
+      ("describe", git.describe),
+      ("commit", git.commit),
+      ("short_commit", git.short_commit),
+      ("commit_date", git.commit_date),
+      ("author", git.author),
+      ("email", git.email),
+    ] {
+    lines.push(quoted_line(pair.0, @mooninfo.quote(pair.1)))
+  }
   lines.push("    dirty: \{git.dirty},")
   lines.push("    ahead: \{git.ahead},")
   lines.push("    behind: \{git.behind},")

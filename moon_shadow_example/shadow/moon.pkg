@@ -1,5 +1,5 @@
 import {
-  "PaiGack/moon_shadow/core",
+  "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
 }
 
@@ -7,7 +7,7 @@ virtual(implement: "PaiGack/moon_shadow/shadow")
 
 rule(
   name: "gen",
-  command: "moon run --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen/main.mbt -- \"$input\" \"$output\"",
+  command: "moon run --target js --target-dir _build/gen ../gen -- --meta-path PaiGack/moon_shadow/mooninfo --git-path PaiGack/moon_shadow/gitinfo \"$input\" \"$output\"",
 )
 
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")

@@ -46,7 +46,7 @@ moon add PaiGack/moon_shadow
 
 ```
 import {
-  "PaiGack/moon_shadow/core",
+  "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
 }
 
@@ -54,7 +54,7 @@ virtual(implement: "PaiGack/moon_shadow/shadow")
 
 rule(
   name: "gen",
-  command: "moon run --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen/main.mbt -- \"$input\" \"$output\"",
+  command: "moon run --target js --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen/main.mbt -- --meta-path PaiGack/moon_shadow/mooninfo --git-path PaiGack/moon_shadow/gitinfo \"$input\" \"$output\"",
 )
 
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
@@ -92,12 +92,13 @@ options(
 函数：
 
 ```moonbit nocheck
-pub fn module_info() -> @core.ModuleInfo
-pub fn git_info() -> @gitinfo.GitInfo
+pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo
+pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo
 ```
 
-`@gitinfo.GitInfo` 是别的包里的类型，`pkg.mbti` 里引用它没问题——只要虚拟包
-自己的 `moon.pkg` 导入了 `gitinfo`。
+两个类型都写**完整包路径**而不是别名：虚拟包的实现要按这份 `pkg.mbti` 检查，
+而实现包自己的 `moon.pkg` 把这两个包叫什么别名，使用者说了算。`gen` 的
+`--meta-path` / `--git-path` 就是这两个路径，生成的代码与 `pkg.mbti` 因此总能对上。
 
 `shadow` 包自带一份从*本*模块的 `moon.mod` 和本仓库的 git 生成的默认实现。
 使用者通过 `options(overrides: [...])` 指向自己的实现——即从*它自己*的
@@ -128,7 +129,7 @@ pub fn git_info() -> @gitinfo.GitInfo
 ## 仓库结构
 
 ```
-core/                ModuleInfo / Dependency、moon_config 解析、moon.mod 侧渲染
+mooninfo/            ModuleInfo / Dependency、moon_config 解析、moon.mod 侧渲染
 gitinfo/             GitInfo 类型、"怎么把一段输出解释成字段"的纯逻辑
 gen/                 生成器可执行文件：读 moon.mod、跑 git、写出实现文件
 shadow/              虚拟包及其生成的默认实现、gen 规则
@@ -182,5 +183,14 @@ moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
 - **所有 git 调用带 `GIT_OPTIONAL_LOCKS=0`**，避免抢 `index.lock` 卡住用户
   自己的 `git commit`。
 - **转义只解码一次。** `moon_config` 返回的字符串字面量是源码原始
-  形式（`"a \"b\""` 得到 `a \"b\"`），因此 `core` 会在重新生成前
-  做一次反转义；否则每次重新生成都会让反斜杠翻倍。
+  形式（`"a \"b\""` 得到 `a \"b\"`），因此 `mooninfo` 会在重新生成前
+  做一次反转义；否则每次重新生成都会让反斜杠翻倍。`unescape` 与
+  `mooninfo::quote` 互为逆运算，`\u{...}` / `\xNN` / `\oNNN` / 续行
+  都在内，所以「重新生成 = 无 diff」对含转义的 `moon.mod` 也成立。
+- **生成物不带尾逗号。** 早先的渲染器刻意复刻 `moon fmt` 的尾逗号，
+  但 `moon fmt` 对字面量的输出并不带它；生成的代码现在就是格式化后的样子，
+  提交前不再需要手工格式化。
+- **包名。** `mooninfo` 装的是 `moon.mod` 的一半，`gitinfo` 装 git 的一半，
+  命名对齐；`0.1.x` 里的 `core` 包在 `0.2.0` 改名为 `mooninfo`，升级时把
+  `moon.pkg` 里的 `PaiGack/moon_shadow/core` 换成
+  `PaiGack/moon_shadow/mooninfo` 并重新生成一次 `generated.mbt` 即可。
