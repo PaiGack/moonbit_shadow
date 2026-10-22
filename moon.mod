@@ -15,7 +15,7 @@ keywords = [ "shadow", "build-info", "metadata" ]
 
 preferred_target = "wasm-gc"
 
-description = "Read a MoonBit module's own moon.mod metadata at runtime, baked in at build time."
+description = "Read a MoonBit module's own moon.mod and git metadata at runtime, baked in at build time."
 
 import {
   "moonbitlang/moon_config@0.4.4",

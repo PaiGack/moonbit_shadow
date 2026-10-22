@@ -11,8 +11,25 @@ pub fn module_info() -> @core.ModuleInfo {
     keywords: ["shadow", "example"],
     preferred_target: "wasm-gc",
     supported_targets: [],
-    deps: [
-      { name: "PaiGack/moon_shadow", version: "0.1.1" },
-    ],
+    deps: [{ name: "PaiGack/moon_shadow", version: "0.1.1", }],
+  }
+}
+
+///|
+/// Generated from the git checkout this module was built in.
+pub fn git_info() -> @gitinfo.GitInfo {
+  {
+    available: true,
+    branch: "main",
+    tag: "",
+    describe: "50a396b",
+    commit: "50a396b36f3d6bf8cbaf593ebe294609fefb92bc",
+    short_commit: "50a396b",
+    commit_date: "2026-10-22T18:50:55+08:00",
+    author: "rzhangsan",
+    email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
+    dirty: true,
+    ahead: 0,
+    behind: 0,
   }
 }

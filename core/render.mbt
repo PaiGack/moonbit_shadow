@@ -47,11 +47,18 @@ pub fn render_module_info(info : ModuleInfo) -> String {
   ]
   if info.deps.is_empty() {
     lines.push("    deps: [],")
+  } else if info.deps.length() == 1 {
+    // `moon fmt` keeps a single-element array on one line.
+    let dep = info.deps[0]
+    lines.push(
+      "    deps: [{ name: \{quote(dep.name)}, version: \{quote(dep.version)}, }],",
+    )
   } else {
     lines.push("    deps: [")
     for dep in info.deps {
       lines.push(
-        "      { name: \{quote(dep.name)}, version: \{quote(dep.version)} },",
+        // Trailing comma inside the braces is what `moon fmt` leaves behind.
+        "      { name: \{quote(dep.name)}, version: \{quote(dep.version)}, },",
       )
     }
     lines.push("    ],")
