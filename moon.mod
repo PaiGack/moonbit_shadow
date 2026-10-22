@@ -1,13 +1,13 @@
 // Learn more about moon.mod configuration:
 // https://docs.moonbitlang.com/en/latest/toolchain/moon/module.html
 
-name = "nrzhangsan/moon_shadow"
+name = "PaiGack/moon_shadow"
 
-version = "0.1.2"
+version = "0.1.0"
 
 readme = "README.mbt.md"
 
-repository = "https://cnb.cool/nrzhangsan/moon_shadow"
+repository = "https://github.com/PaiGack/moonbit_shadow"
 
 license = "Apache-2.0"
 

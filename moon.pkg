@@ -1,6 +1,6 @@
 import {
-  "nrzhangsan/moon_shadow/core",
-  "nrzhangsan/moon_shadow/shadow",
+  "PaiGack/moon_shadow/core",
+  "PaiGack/moon_shadow/shadow",
 }
 
 pkgtype(kind: "library")

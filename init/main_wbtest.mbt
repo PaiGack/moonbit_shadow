@@ -55,9 +55,9 @@ test "parent_of peels one level" {
 
 ///|
 test "has_import sees every spelling" {
-  let one_per_line = "import {\n  \"nrzhangsan/moon_shadow\",\n}\n"
-  assert_true(has_import(one_per_line, "nrzhangsan/moon_shadow"))
-  assert_false(has_import(one_per_line, "nrzhangsan/moon_shadow/shadow"))
+  let one_per_line = "import {\n  \"PaiGack/moon_shadow\",\n}\n"
+  assert_true(has_import(one_per_line, "PaiGack/moon_shadow"))
+  assert_false(has_import(one_per_line, "PaiGack/moon_shadow/shadow"))
   let single_line = "import { \"a/b\", \"c/d\" }"
   assert_true(has_import(single_line, "a/b"))
   assert_true(has_import(single_line, "c/d"))
@@ -72,20 +72,20 @@ test "has_import sees every spelling" {
 ///|
 test "add_import extends the first block or starts one" {
   let with_block = "import {\n  \"other/mod\",\n}\n\npkgtype(kind: \"library\")\n"
-  let patched = add_import(with_block, "nrzhangsan/moon_shadow")
-  assert_true(patched.contains("  \"nrzhangsan/moon_shadow\",\n"))
+  let patched = add_import(with_block, "PaiGack/moon_shadow")
+  assert_true(patched.contains("  \"PaiGack/moon_shadow\",\n"))
   assert_true(patched.contains("  \"other/mod\",\n"))
-  assert_true(has_import(patched, "nrzhangsan/moon_shadow"))
+  assert_true(has_import(patched, "PaiGack/moon_shadow"))
   let fresh = "pkgtype(kind: \"library\")\n"
-  let started = add_import(fresh, "nrzhangsan/moon_shadow")
+  let started = add_import(fresh, "PaiGack/moon_shadow")
   assert_true(
-    started.has_prefix("import {\n  \"nrzhangsan/moon_shadow\",\n}\n\n"),
+    started.has_prefix("import {\n  \"PaiGack/moon_shadow\",\n}\n\n"),
   )
 }
 
 ///|
 test "add_override appends a block, a key, or an entry" {
-  let plain = "import {\n  \"nrzhangsan/moon_shadow\",\n}\n"
+  let plain = "import {\n  \"PaiGack/moon_shadow\",\n}\n"
   let block = add_override(plain, "acme/x/shadow")
   assert_true(
     block.contains("options(\n  overrides: [ \"acme/x/shadow\", ],\n)"),
@@ -102,14 +102,14 @@ test "add_override appends a block, a key, or an entry" {
 
 ///|
 test "render_scaffold points the gen rule at the library" {
-  let scaffold = render_scaffold("nrzhangsan/moon_shadow", "..")
+  let scaffold = render_scaffold("PaiGack/moon_shadow", "..")
   assert_true(
     scaffold.contains(
       "command: \"moon run --target js --target-dir _build/gen ../gen/main.mbt -- $input $output\",",
     ),
   )
   assert_true(
-    scaffold.contains("virtual(implement: \"nrzhangsan/moon_shadow/shadow\")"),
+    scaffold.contains("virtual(implement: \"PaiGack/moon_shadow/shadow\")"),
   )
   assert_true(
     scaffold.contains(
@@ -129,13 +129,13 @@ test "member_entries reads both spellings" {
 test "is_our_scaffold recognises the marker" {
   assert_true(
     is_our_scaffold(
-      "import {\n  \"nrzhangsan/moon_shadow/core\",\n}\n\nvirtual(implement: \"nrzhangsan/moon_shadow/shadow\")\n",
-      "nrzhangsan/moon_shadow",
+      "import {\n  \"PaiGack/moon_shadow/core\",\n}\n\nvirtual(implement: \"PaiGack/moon_shadow/shadow\")\n",
+      "PaiGack/moon_shadow",
     ),
   )
   assert_false(
     is_our_scaffold(
-      "virtual(implement: \"other/shadow\")", "nrzhangsan/moon_shadow",
+      "virtual(implement: \"other/shadow\")", "PaiGack/moon_shadow",
     ),
   )
 }
@@ -153,27 +153,27 @@ test "init_module writes the scaffold, and only once" {
   create_dir(target)
   write_text(
     join(target, "moon.mod"),
-    "name = \"acme/test\"\n\nversion = \"0.1.0\"\n\npreferred_target = \"wasm-gc\"\n\nimport {\n  \"nrzhangsan/moon_shadow@0.1.2\",\n}\n",
+    "name = \"acme/test\"\n\nversion = \"0.1.0\"\n\npreferred_target = \"wasm-gc\"\n\nimport {\n  \"PaiGack/moon_shadow@0.1.2\",\n}\n",
   )
   write_text(
     join(target, "moon.pkg"),
-    "import {\n  \"nrzhangsan/moon_shadow\",\n}\n",
+    "import {\n  \"PaiGack/moon_shadow\",\n}\n",
   )
-  let actions = init_module(library, "nrzhangsan/moon_shadow", target)
+  let actions = init_module(library, "PaiGack/moon_shadow", target)
   assert_true(actions.length() > 0)
   let scaffold = must_read(join(join(target, "shadow"), "moon.pkg"))
   assert_true(
-    scaffold.contains("virtual(implement: \"nrzhangsan/moon_shadow/shadow\")"),
+    scaffold.contains("virtual(implement: \"PaiGack/moon_shadow/shadow\")"),
   )
   assert_true(scaffold.contains("../libs/moon_shadow/gen/main.mbt"))
   let generated = must_read(join(join(target, "shadow"), "generated.mbt"))
   assert_true(generated.contains("name: \"acme/test\","))
   let manifest = must_read(join(target, "moon.pkg"))
-  assert_true(has_import(manifest, "nrzhangsan/moon_shadow"))
+  assert_true(has_import(manifest, "PaiGack/moon_shadow"))
   assert_true(has_import(manifest, "acme/test/shadow"))
   let work = must_read(join(target, "moon.work"))
-  assert_true(has_member(work, target, library, "nrzhangsan/moon_shadow"))
+  assert_true(has_member(work, target, library, "PaiGack/moon_shadow"))
   // A second run has nothing left to do.
-  assert_eq(init_module(library, "nrzhangsan/moon_shadow", target), [])
+  assert_eq(init_module(library, "PaiGack/moon_shadow", target), [])
   remove_tree(root)
 }

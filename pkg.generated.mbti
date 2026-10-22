@@ -1,8 +1,8 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "nrzhangsan/moon_shadow"
+package "PaiGack/moon_shadow"
 
 import {
-  "nrzhangsan/moon_shadow/core",
+  "PaiGack/moon_shadow/core",
 }
 
 // Values

@@ -1,7 +1,7 @@
-package "nrzhangsan/moon_shadow/shadow"
+package "PaiGack/moon_shadow/shadow"
 
 import {
-  "nrzhangsan/moon_shadow/core",
+  "PaiGack/moon_shadow/core",
 }
 
 // Values

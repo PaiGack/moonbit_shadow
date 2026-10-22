@@ -1,10 +1,10 @@
 import {
-  "nrzhangsan/moon_shadow",
-  "nrzhangsan/moon_shadow_example",
+  "PaiGack/moon_shadow",
+  "PaiGack/moon_shadow_example",
 }
 
 options(
-  overrides: [ "nrzhangsan/moon_shadow_example/shadow" ],
+  overrides: [ "PaiGack/moon_shadow_example/shadow" ],
 )
 
 pkgtype(kind: "executable")

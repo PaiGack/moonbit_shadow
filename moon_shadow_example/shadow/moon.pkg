@@ -1,8 +1,8 @@
 import {
-  "nrzhangsan/moon_shadow/core",
+  "PaiGack/moon_shadow/core",
 }
 
-virtual(implement: "nrzhangsan/moon_shadow/shadow")
+virtual(implement: "PaiGack/moon_shadow/shadow")
 
 rule(
   name: "gen",

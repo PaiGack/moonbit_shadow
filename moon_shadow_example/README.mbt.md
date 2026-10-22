@@ -4,7 +4,7 @@ A module that reads **its own** `moon.mod` at runtime through `moon_shadow`.
 
 ```moonbit nocheck
 let info = @moon_shadow.current()
-println(info.name)    // "nrzhangsan/moon_shadow_example"
+println(info.name)    // "PaiGack/moon_shadow_example"
 println(info.version) // "0.2.3"
 ```
 
@@ -17,12 +17,12 @@ moon run --target js cmd/main
 ## How the metadata gets in
 
 `moon_shadow` reads metadata through the virtual package
-`nrzhangsan/moon_shadow/shadow`. This module implements it in `shadow/`
+`PaiGack/moon_shadow/shadow`. This module implements it in `shadow/`
 and points `overrides` at that package:
 
 ```moonbit nocheck
 options(
-  overrides: [ "nrzhangsan/moon_shadow_example/shadow" ],
+  overrides: [ "PaiGack/moon_shadow_example/shadow" ],
 )
 ```
 
