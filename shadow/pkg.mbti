@@ -1,17 +1,8 @@
 package "nrzhangsan/moon_shadow/shadow"
 
-fn module_name() -> String
+import {
+  "nrzhangsan/moon_shadow/core",
+}
 
-fn module_version() -> String
-
-fn module_description() -> String
-
-fn module_license() -> String
-
-fn module_repository() -> String
-
-fn module_readme() -> String
-
-fn module_keywords() -> Array[String]
-
-fn module_preferred_target() -> String
+// Values
+pub fn module_info() -> @core.ModuleInfo

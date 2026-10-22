@@ -1,0 +1,6 @@
+import {
+  "nrzhangsan/moon_shadow/core",
+  "nrzhangsan/moon_shadow/shadow",
+}
+
+pkgtype(kind: "library")

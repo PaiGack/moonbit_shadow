@@ -1,6 +1,7 @@
 import {
-  "moonbitlang/core/env",
+  "nrzhangsan/moon_shadow/core",
   "moonbitlang/x/fs",
+  "moonbitlang/core/env",
 }
 
 pkgtype(kind: "executable")
