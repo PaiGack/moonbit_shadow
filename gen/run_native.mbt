@@ -1,9 +1,12 @@
 ///|
-/// `popen`'s return value travels as an integer: MoonBit has no opaque pointer
-/// type to hand back across the FFI, and `UInt64` is how it fits on every 64-bit
-/// host.
+/// An opaque pointer: MoonBit has no pointer type, and `UInt64` — the obvious
+/// stand-in — is not one either. Passing an integer where libc expects a
+/// `FILE *` works or crashes depending on addressing luck, which is exactly how
+/// this generator behaved before: same input, fifty-fifty build. `#external`
+/// keeps the value untyped all the way across the FFI.
 #cfg(any(target="native", target="llvm"))
-pub type Handle = UInt64
+#external
+pub type Handle
 
 ///|
 #cfg(any(target="native", target="llvm"))
@@ -16,18 +19,23 @@ extern "C" fn c_popen(command : Bytes, mode : Bytes) -> Handle = "popen"
 extern "C" fn c_pclose(stream : Handle) -> Int32 = "pclose"
 
 ///|
+/// NULL as it arrives from C. The comparison goes through the same opaque type
+/// so no pointer is ever reinterpreted as an integer.
 #cfg(any(target="native", target="llvm"))
-#borrow(buffer, stream)
-extern "C" fn c_fgets(buffer : Bytes, size : Int32, stream : Handle) -> Handle = "fgets"
+extern "C" fn c_is_null(stream : Handle) -> Int32 = "moonbitlang_x_fs_is_null"
 
 ///|
+/// `fread` rather than `fgets`: it reports how many bytes it actually read, so
+/// the buffer never has to be scanned for a terminator, and binary-safe output
+/// survives. `fgets` also returns a `char *` this side would have to reinterpret.
 #cfg(any(target="native", target="llvm"))
-#borrow(destination, source)
-extern "C" fn c_memcpy(
-  destination : Bytes,
-  source : Bytes,
+#borrow(buffer, stream)
+extern "C" fn c_fread(
+  buffer : Bytes,
+  size : Int32,
   count : Int32,
-) -> Bytes = "memcpy"
+  stream : Handle,
+) -> Int32 = "fread"
 
 ///|
 #cfg(any(target="native", target="llvm"))
@@ -54,16 +62,17 @@ fn run_via_popen(program : String, args : Array[String]) -> (String, String)? {
   // here — the field simply stays empty. Left alone, the shell would copy them
   // straight into the build log on every build.
   let stream = c_popen(c_string(builder.to_string() + " 2>/dev/null"), b"r\x00")
-  if stream.reinterpret_as_int64() == 0 {
+  if c_is_null(stream) != 0 {
     return None
   }
   let buffer = Bytes::make(4096, b'\x00')
   let bytes : Array[Byte] = []
-  while c_fgets(buffer, 4096, stream).reinterpret_as_int64() != 0 {
-    for i = 0; i < 4096; i = i + 1 {
-      if buffer[i] == b'\x00' {
-        break
-      }
+  while true {
+    let read = c_fread(buffer, 1, 4096, stream)
+    if read <= 0 {
+      break
+    }
+    for i = 0; i < read; i = i + 1 {
       bytes.push(buffer[i])
     }
   }
@@ -71,7 +80,7 @@ fn run_via_popen(program : String, args : Array[String]) -> (String, String)? {
   // `pclose` reports a wait status: the exit code sits in the high byte, and
   // -1 means the shell itself could not be reaped.
   let code = if status == -1 { -1 } else { (status >> 8) & 0xFF }
-  Some((bytes_to_string(bytes), code.to_string()))
+  Some((@utf8.decode_lossy(Bytes::from_array(bytes)), code.to_string()))
 }
 
 ///|
@@ -79,22 +88,8 @@ fn run_via_popen(program : String, args : Array[String]) -> (String, String)? {
 /// `text` as the NUL-terminated `const char *` that `popen` reads up to.
 ///
 /// `String::to_bytes` is packed — one NUL between chars, so `popen` would see an
-/// empty command. `@utf8.encode` is the only producer of plain bytes, but it drops
-/// the NUL terminator; copying it into a buffer whose last byte is already NUL
-/// keeps both.
+/// empty command. `@utf8.encode` is the only producer of plain bytes, so it is
+/// the one that gets the terminator appended.
 fn c_string(text : String) -> Bytes {
-  let encoded : Bytes = @utf8.encode(text)
-  let command = Bytes::make(encoded.length() + 1, b'\x00')
-  let _ = c_memcpy(command, encoded, encoded.length())
-  command
-}
-
-///|
-#cfg(any(target="native", target="llvm"))
-fn bytes_to_string(bytes : Array[Byte]) -> String {
-  let builder = StringBuilder()
-  for byte in bytes {
-    builder.write_char(byte.to_char())
-  }
-  builder.to_string()
+  @utf8.encode(text) + b"\x00"
 }

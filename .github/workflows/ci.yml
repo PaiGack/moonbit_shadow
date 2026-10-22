@@ -23,10 +23,24 @@ jobs:
         run: |
           moon check --target wasm-gc
           moon test --target wasm-gc
-      - name: Generated implementations must be up to date
+      - name: Generated `module_info` must match `moon.mod`
+        # `git_info()` is a snapshot of the commit the file was generated from,
+        # so it is *supposed* to drift — a clean checkout builds at a newer
+        # commit than whatever was committed, and diffing the whole file would
+        # fail on every push. `module_info()` has no such excuse: it is a pure
+        # function of `moon.mod`, so only that half is compared.
         run: |
-          git diff --exit-code shadow/generated.mbt
-          git diff --exit-code moon_shadow_example/shadow/generated.mbt
+          strip_git_info() {
+            sed '/^pub fn git_info()/,$d' "$1"
+          }
+          for f in shadow/generated.mbt moon_shadow_example/shadow/generated.mbt; do
+            strip_git_info "$f" > /tmp/got.mbt
+            strip_git_info <(git show "HEAD:$f") > /tmp/want.mbt
+            diff -u /tmp/want.mbt /tmp/got.mbt || {
+              echo "::error file=$f::module_info() is stale; run moon check and commit"
+              exit 1
+            }
+          done
       - name: The generator itself must compile for the target it runs on
         run: |
           moon check --target js --target-dir _build/gen gen
