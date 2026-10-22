@@ -1,8 +1,9 @@
 ///|
 /// Sole generator: `moon.mod` in, virtual package implementation out.
 ///
-/// `moon run` appends the rule's arguments after `--`, and the JS backend puts
-/// `node` plus the script path in front, so the last two are ours.
+/// The last two arguments are the rule's `$input` and `$output`. `moon run`
+/// may wrap the executable (`node`, `wasmtime`, `--`) and may append flags of
+/// its own, so counting from this end is the only stable way to find them.
 ///
 /// The output is always written, never diffed and skipped: if a checkout is
 /// missing it because the consumer's `dev_build` rule cannot reach this package,
