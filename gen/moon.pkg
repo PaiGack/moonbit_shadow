@@ -10,7 +10,7 @@ pkgtype(kind: "executable")
 options(
   targets: {
     "run_js.mbt": [ "js" ],
-    "run_none.mbt": [ "wasm" ],
+    "run_none.mbt": [ "wasm", "native", "llvm" ],
     "run_wasm_gc.mbt": [ "wasm-gc" ],
   },
 )
