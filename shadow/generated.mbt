@@ -23,12 +23,12 @@ pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo {
 pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
   {
     available: true,
-    branch: "fix/rename-core-to-mooninfo",
+    branch: "auto/fix-gen-targets-abcf",
     tag: "",
-    describe: "4f8deab",
-    commit: "4f8deab7d8871c0171f368c0be64d95dae27b9f0",
-    short_commit: "4f8deab",
-    commit_date: "2026-10-22T21:01:07+08:00",
+    describe: "803aae6",
+    commit: "803aae6668f6e264b8f493e126687f8bd60a8a9e",
+    short_commit: "803aae6",
+    commit_date: "2026-10-22T21:28:16+08:00",
     author: "rzhangsan",
     email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
     dirty: true,
