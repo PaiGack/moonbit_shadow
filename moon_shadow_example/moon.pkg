@@ -1,0 +1,7 @@
+import {
+  "username/moon_shadow",
+}
+
+options(
+  overrides: [ "username/moon_shadow_example/shadow_impl" ],
+)

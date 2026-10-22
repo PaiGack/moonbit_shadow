@@ -1,14 +1,3 @@
-// Learn more about moon.mod configuration:
-// https://docs.moonbitlang.com/en/latest/toolchain/moon/module.html
-//
-// To add a dependency, run this command in your terminal:
-//   moon add moonbitlang/x
-//
-// Or manually declare it in `import`, for example:
-// import {
-//   "moonbitlang/x@0.4.6",
-// }
-
 name = "username/moon_shadow"
 
 version = "0.1.0"
@@ -19,8 +8,12 @@ repository = ""
 
 license = "Apache-2.0"
 
-keywords = []
+keywords = [ "shadow", "build-info", "metadata" ]
 
 preferred_target = "wasm"
 
-description = ""
+description = "Read a MoonBit module's own moon.mod metadata at runtime, baked in at build time."
+
+import {
+  "moonbitlang/x@0.5.6",
+}
