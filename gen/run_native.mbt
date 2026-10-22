@@ -57,7 +57,11 @@ fn run_via_popen(program : String, args : Array[String]) -> (String, String)? {
     builder.write_char(' ')
     builder.write_string(arg)
   }
-  let stream = c_popen(c_string(builder.to_string()), b"r\x00")
+  // `2>/dev/null`: git prints "fatal: No names found" for an untagged repo and
+  // a complaint for a missing upstream, both of which are ordinary answers
+  // here — the field simply stays empty. Left alone, the shell would copy them
+  // straight into the build log on every build.
+  let stream = c_popen(c_string(builder.to_string() + " 2>/dev/null"), b"r\x00")
   if c_is_null(stream) != 0 {
     return None
   }
