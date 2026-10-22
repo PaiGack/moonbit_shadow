@@ -15,7 +15,7 @@ options(
   warn_list: "-unused_package",
   targets: {
     "run_js.mbt": [ "js" ],
-    "run_none.mbt": [ "wasm", "wasm-gc" ],
-    "run_targets.mbt": [ "js", "native", "llvm" ],
+    "run_none.mbt": [ "wasm" ],
+    "run_targets.mbt": [ "js", "native", "llvm", "wasm-gc" ],
   },
 )
