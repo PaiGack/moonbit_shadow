@@ -16,26 +16,11 @@ println(git.branch)                         // "main"
 println(git.to_version_string())            // "main-dirty 50a396b-dirty"
 ```
 
-## 为什么 git 信息不是运行时采集
+与运行时方案相比还有一个额外好处：烘焙进产物就是纯常量，`wasm-gc` / `js` / `native` 一样能用，不需要为读 git 限制 target。
 
-你发布的软件跑在别人的电脑上：那台机器大概率没有 git、没有 `.git`，cwd 落在
-哪里也不关你的事。运行时采集等于把不确定性外包给终端用户，最后只能拿到
-`available = false`。想要稳定的 git 信息，只在**构建这台机器、这次 checkout**
-上采集一次，然后编进产物。
+## 快速上手
 
-`moon.mod` 也是同样的道理，所以两条链共用同一份生成物：
-
-```
-moon.mod ----(gen rule)---> shadow/generated.mbt --(compile)--> current()
-git 命令 ----(gen rule)--->                       --(compile)--> git()
-```
-
-与运行时方案相比还有一个额外好处：烘焙进产物就是纯常量，`wasm-gc` /
-`js` / `native` 一样能用，不需要为读 git 限制 target。
-
-## 在自己的模块中使用
-
-1. 依赖已发布的包：
+1. 添加依赖：
 
 ```
 moon add PaiGack/moon_shadow
