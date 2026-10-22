@@ -1,7 +1,8 @@
 import {
-  "username/moon_shadow",
+  "nrzhangsan/moon_shadow/modinfo" @moon_shadow_info,
+  "nrzhangsan/moon_shadow/shadow" @moon_shadow_shadow,
 }
 
 options(
-  overrides: [ "username/moon_shadow_example/shadow_impl" ],
+  overrides: [ "nrzhangsan/moon_shadow_example/shadow_impl" ],
 )

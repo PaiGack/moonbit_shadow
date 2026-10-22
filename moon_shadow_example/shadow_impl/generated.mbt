@@ -1,6 +1,8 @@
 ///|
+/// Generated from `moon.mod` by the `gen` rule. Do not edit.
+/// Run `moon check` to refresh.
 pub fn module_name() -> String {
-  "username/moon_shadow_example"
+  "nrzhangsan/moon_shadow_example"
 }
 
 ///|
@@ -29,11 +31,11 @@ pub fn module_readme() -> String {
 }
 
 ///|
-pub fn module_keywords() -> Array[String] {
-  ["shadow", "example"]
+pub fn module_preferred_target() -> String {
+  "wasm-gc"
 }
 
 ///|
-pub fn module_preferred_target() -> String {
-  "wasm"
+pub fn module_keywords() -> Array[String] {
+  ["shadow", "example"]
 }
