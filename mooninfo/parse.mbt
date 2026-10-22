@@ -8,9 +8,10 @@ pub(all) struct ParsedMoonMod {
 }
 
 ///|
-/// First field named `key`. `moon_config` normalizes `preferred_target` to
-/// `preferred-target` at the top level but keeps the underscore inside
-/// `options(...)`, so both spellings are accepted.
+/// First field named `key`. `moon_config` normalizes `preferred_target` and
+/// `supported_targets` to the dashed spelling at the top level but keeps the
+/// underscore inside `options(...)`, so both are accepted. The dashed spelling
+/// is what it actually produces, so it is the one tried first.
 fn find_field(
   fields : @vector.Vector[(String, @moon_config.Ast)],
   key : String,
