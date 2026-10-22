@@ -13,48 +13,16 @@ println(info.dep("moonbitlang/moon_config")) // Some(...)
 
 ## Using it in your own module
 
-1. Depend on `PaiGack/moon_shadow`, with the library in a `moon.work`
-   beside your module — the setup `moon_shadow_example/` shows:
+1. Depend on the published package:
 
 ```
 moon add PaiGack/moon_shadow
 ```
 
-2. Run `moon check`. The `init` rule in the library's `shadow/moon.pkg`
-   discovers your module — it looks for the `moon.mod` files near the library
-   that import it — and writes everything the manual setup used to ask for:
+2. Create a `shadow` package that implements the virtual package and keeps
+   the implementation fresh from your `moon.mod`. One file, `shadow/moon.pkg`:
 
 ```
-moon_shadow: initialized /path/to/your/module
-  moon.work: added member ..
-  shadow/moon.pkg: created
-  shadow/generated.mbt: created
-  moon.pkg: added import PaiGack/moon_shadow
-  moon.pkg: added overrides your/module/shadow
-```
-
-3. Run `moon check` once more and you are done. From then on `moon check` /
-   `moon run` regenerate `shadow/generated.mbt` whenever `moon.mod` changes,
-   and `@moon_shadow.current()` reports your module's metadata.
-
-To set one module up by hand, point the `init` package at it explicitly —
-the same program the rule runs, with the directory as its argument:
-
-```moonbit nocheck
-moon run --target js --target-dir _build/init <path-to>/moon_shadow/init -- /path/to/your/module
-```
-
-Run it from the `moon_shadow` module root. It prints what it changed, is
-idempotent, and leaves an already set-up module untouched.
-
-### What the scaffold contains
-
-`init` writes two files and patches two, which is the whole manual setup:
-
-`shadow/moon.pkg` — implement the virtual package, and keep the
-implementation fresh from your `moon.mod`:
-
-```moonbit nocheck
 import {
   "PaiGack/moon_shadow/core",
 }
@@ -63,31 +31,40 @@ virtual(implement: "PaiGack/moon_shadow/shadow")
 
 rule(
   name: "gen",
-  command: "moon run --target js --target-dir _build/gen <path-to>/moon_shadow/gen/main.mbt -- $input $output",
+  command: "moon run --target js --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen/main.mbt -- \"$input\" \"$output\"",
 )
+
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
 ```
 
-The command runs in your module root, and `$input` / `$output` are paths
-relative to it. `gen/main.mbt` is run as a standalone file, so your module does
-not need a dependency on it — only a path.
+   The `gen` rule runs on every `moon check` / `moon build` / `moon run` and
+   writes `shadow/generated.mbt` from your `moon.mod`. It runs the generator
+   straight out of `.mooncakes`, where `moon add` stages the dependency, so
+   nothing has to be checked out beside your module. Swap `--target js` for
+   `--target native` if you would rather not need `node` on the machine.
 
-`shadow/generated.mbt` — rendered from your `moon.mod`, committed.
+3. Point the packages that read the metadata at your implementation — the
+   import, plus the override, in every `moon.pkg` whose build reaches
+   `@moon_shadow.current()`:
 
-Your root `moon.pkg` — the import, plus the override that points the packages
-reading the metadata at your implementation:
+```
+import {
+  "PaiGack/moon_shadow",
+}
 
-```moonbit nocheck
 options(
   overrides: [ "your/module/shadow" ],
 )
 ```
 
-Your `moon.work` — the library as a member, so the `gen` command above can
-reach it.
+4. Run `moon check` once and you are done. From then on `moon check` /
+   `moon run` regenerate `shadow/generated.mbt` whenever `moon.mod` changes,
+   and `@moon_shadow.current()` reports your module's metadata.
 
-`moon_shadow_example/` is exactly this setup, end to end.
+   Commit `shadow/generated.mbt`: `dev_build` rules do not run on release
+   builds, and a committed file keeps a clean clone building without one.
 
+`moon_shadow_example/` is this setup, end to end.
 
 ## How it works
 
@@ -100,15 +77,6 @@ moon.mod --(gen rule)--> shadow/generated.mbt --(compile)--> current()
 
 At runtime there is no file I/O, no `git` and no environment sniffing — just
 struct field reads.
-
-The same build boundary is crossed the other way by `init`: a `dev_build` rule
-in `shadow/moon.pkg` runs the `init` package on every `moon check` /
-`moon build` / `moon run`, and writes the scaffold a consumer needs into any
-module nearby that depends on this one:
-
-```
-consumer moon.mod --(init rule)--> shadow/ scaffold + overrides in moon.pkg
-```
 
 The metadata crosses the build boundary through the virtual package
 `PaiGack/moon_shadow/shadow`, which exposes a single accessor:
@@ -140,12 +108,11 @@ keys come along for free.
 ## Repo layout
 
 ```
-core/                ModuleInfo / Dependency, `moon_config` parsing, codegen
-gen/                 the generator executable, `moon.mod` -> implementation
-init/                the one-command setup, writes a consumer's shadow scaffold
-shadow/              virtual package + its generated default, gen + init rules
+core/                ModuleInfo / Dependency, moon_config parsing, codegen
+gen/                 the generator executable, moon.mod -> implementation
+shadow/              virtual package + its generated default, gen rule
 moon_shadow.mbt      the public API: current()
-moon_shadow_example/ a consumer module, with its own moon.work workspace
+moon_shadow_example/ a consumer module, exactly the setup above
 ```
 
 ## Behaviour worth knowing
@@ -164,13 +131,19 @@ they shape what this library can promise:
 - **A module cannot override its own virtual package.** That is why the example
   is a separate module rather than another package inside `moon_shadow`.
 - **A dependency from the registry never runs build rules.** MoonBit skips a
-  dependency's pre-build steps when it is consumed from `.mooncakes`, so
-  published implementations are committed: after editing `moon.mod`, run
-  `moon check` and commit the result. CI fails with a diff if you forget.
-- **A workspace member's rules do run.** A library listed in a consumer's
-  `moon.work` is built as part of that consumer's build, rules included — which
-  is what `init` relies on to set a consumer up unattended, and why the
-  `moon.work` setup above is the supported one.
+  dependency's pre-build steps when it is consumed from the registry, so this
+  library cannot set your module up for you: the `shadow` package above is
+  yours to create, and the `gen` rule inside it is what keeps
+  `generated.mbt` fresh. What the library ships in `shadow/` is only the
+  default implementation for consumers who never override.
+- **`overrides` is per-package.** Every package whose build reaches the virtual
+  package needs its own `options(overrides: [...])` — hence the example carries
+  one in both its root package and `cmd/main`.
+- **The `gen` rule reaches the generator through `.mooncakes`**, moon's staging
+  layout for registry dependencies. If a future moon changes that layout the
+  rule stops finding it; the generator then keeps the previous
+  `generated.mbt` rather than failing the build, which is one more reason to
+  commit the file.
 - **Escapes are decoded once.** `moon_config` returns string literals in their
   raw source form (`"a \"b\""` yields `a \"b\"`), so `core` unescapes before
   re-emitting them; otherwise every regeneration would double the backslashes.

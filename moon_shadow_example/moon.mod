@@ -13,6 +13,5 @@ preferred_target = "wasm-gc"
 description = "How to read your own moon.mod at runtime with moon_shadow."
 
 import {
-  "PaiGack/moon_shadow@0.1.2",
-  "PaiGack/moon_shadow@0.1.2",
+  "PaiGack/moon_shadow@0.1.0",
 }

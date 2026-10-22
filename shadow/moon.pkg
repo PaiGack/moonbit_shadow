@@ -6,14 +6,7 @@ virtual(has_default: true)
 
 rule(
   name: "gen",
-  command: "moon run --target js --target-dir _build/gen gen -- $input $output",
+  command: "moon run --target js --target-dir _build/gen gen -- \"$input\" \"$output\"",
 )
 
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
-
-rule(
-  name: "init",
-  command: "moon run --target js --target-dir _build/init init",
-)
-
-dev_build(rule: "init", input: "../moon.mod", output: ".init")
