@@ -11,3 +11,13 @@ pub fn own_metadata() -> String {
   let info = @shadow.module_info()
   "\{info.name}@\{info.version} (\{info.preferred_target})"
 }
+
+///|
+/// Git state of this example's own checkout, baked in at build time.
+pub fn git_describe() -> String {
+  let git = @moon_shadow.git()
+  if !git.available {
+    return "unavailable"
+  }
+  git.to_version_string()
+}

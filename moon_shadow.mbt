@@ -7,3 +7,15 @@
 pub fn current() -> @core.ModuleInfo {
   @shadow.module_info()
 }
+
+///|
+/// Git state of the checkout that built this package.
+///
+/// Captured once by the `gen` rule and compiled in, for the same reason as
+/// `current()`: the machine running the software has no `.git`, maybe no
+/// `git`, and its cwd has nothing to do with your repository.
+///
+/// `available = false` when the build itself happened outside a git work tree.
+pub fn git() -> @gitinfo.GitInfo {
+  @shadow.git_info()
+}
