@@ -1,6 +1,6 @@
 name = "nrzhangsan/moon_shadow_example"
 
-version = "0.2.0"
+version = "0.2.5"
 
 readme = "README.mbt.md"
 

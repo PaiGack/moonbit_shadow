@@ -3,7 +3,7 @@
 pub fn module_info() -> @core.ModuleInfo {
   {
     name: "nrzhangsan/moon_shadow",
-    version: "0.1.0",
+    version: "0.1.2",
     description: "Read a MoonBit module's own moon.mod metadata at runtime, baked in at build time.",
     license: "Apache-2.0",
     repository: "https://cnb.cool/nrzhangsan/moon_shadow",
