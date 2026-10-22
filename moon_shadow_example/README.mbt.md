@@ -16,11 +16,12 @@ println(git.to_version_string())     // "main <short-commit>", "-dirty" if track
 Run it from this directory:
 
 ```
-moon run --target js cmd/main
+moon run --target native cmd/main
 ```
 
-The generator behind that runs on node (see the top-level README, "需要 node");
-the example itself builds for `js`, `wasm-gc` and `native`.
+The `gen` rule in `shadow/moon.pkg` runs the generator on `native`, so no
+JavaScript runtime is involved; the example itself builds for `js`, `wasm-gc`
+and `native` too.
 
 ## How the metadata gets in
 

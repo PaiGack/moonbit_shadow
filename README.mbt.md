@@ -83,17 +83,18 @@ options(
 )
 ```
 
-## 需要 node
+## 生成器跑在哪个后端
 
-生成器跑在 js 后端（`node`）上——只有那里能同步 spawn 一个进程去问 git。
-`moon` 从 `PATH` 里找 `node`，找不到就会在 prebuild 阶段报：
+**native**。prebuild 里那条命令是 `moon run --target native gen`，生成器直接
+用 libc 的 `popen` 去问 git，装什么运行时都无所谓——只要这台机器上有
+`/bin/sh`，以及（想拿到 git 信息时）`git`。
 
-```
-Failed to spawn command "node" ... Caused by: No such file or directory (os error 2)
-```
+没有 git 不要紧：生成器照常写出 `git_info().available = false`，构建不会因此
+失败。
 
-装个 node（或把它的目录放进 `PATH`）即可。没有 git 不要紧：生成器会照常写出
-`git_info().available = false`，构建不会因此失败。
+`gen` 这个包同时给 `js` / `wasm-gc` 备了 shim（`js` 走 `process.binding`，
+`wasm-gc` 没有进程模型、直接降级），所以你 `override` 想换成别的后端也能跑，
+只是 `js` 那条路要机器上有 `node`。
 
 ## 工作原理
 
