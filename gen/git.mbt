@@ -1,18 +1,11 @@
 ///|
-/// Run a git command in `cwd` and return its stdout, or `None` when git is
-/// missing, or exits non-zero (no repository, no tag, no upstream — all normal).
+/// Run `git args` in `cwd` and return its stdout, or `None` when git is
+/// missing or exits non-zero (no repository, no tag, no upstream — all normal).
 ///
-/// `GIT_OPTIONAL_LOCKS=0` keeps read-only commands from taking `index.lock`,
+/// `--no-optional-locks` keeps read-only commands from taking `index.lock`,
 /// which would otherwise stall a concurrent build or a user's `git commit`.
 fn git(cwd : String, args : Array[String]) -> String? {
-  let status = @process.run("git", args, cwd~, env={
-    "GIT_OPTIONAL_LOCKS": "0",
-    "LC_ALL": "C",
-  }) catch {
-    _ => return None
-  }
-  guard status.code == 0 else { return None }
-  Some(status.stdout)
+  run("git", ["--no-optional-locks", "-C", cwd, ..args])
 }
 
 ///|
@@ -20,7 +13,7 @@ fn git(cwd : String, args : Array[String]) -> String? {
 /// fail; this one decides between "no git here" and "a repository with no tag".
 fn git_available(cwd : String) -> Bool {
   match git(cwd, ["rev-parse", "--is-inside-work-tree"]) {
-    Some(out) => out.trim().contains("true")
+    Some(out) => out.trim() == "true"
     None => false
   }
 }
@@ -30,7 +23,7 @@ fn git_available(cwd : String) -> Bool {
 ///
 /// `--untracked-files=no` for `status`: the generated file is committed, so
 /// counting untracked files would mark every build as dirty.
-fn RawGitInfo::collect(cwd : String) -> @gitinfo.RawGitInfo {
+fn collect_git_info(cwd : String) -> @gitinfo.RawGitInfo {
   let field = fn(args : Array[String]) {
     match git(cwd, args) {
       Some(out) => out

@@ -15,6 +15,7 @@ jobs:
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Check and test the library
         run: |
+          moon update
           moon check --target wasm-gc
           moon test --target wasm-gc
       - name: Check and test the example workspace
@@ -26,3 +27,6 @@ jobs:
         run: |
           git diff --exit-code shadow/generated.mbt
           git diff --exit-code moon_shadow_example/shadow/generated.mbt
+      - name: The generator itself must compile for the target it runs on
+        run: |
+          moon check --target js --target-dir _build/gen gen

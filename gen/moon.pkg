@@ -1,10 +1,16 @@
 import {
-  "PaiGack/moon_shadow/core",
+  "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
   "moonbitlang/x/fs",
-  "moonbitlang/x/sys",
   "moonbitlang/core/env",
-  "moonbitlang/core/path",
 }
 
 pkgtype(kind: "executable")
+
+options(
+  targets: {
+    "run_js.mbt": [ "js" ],
+    "run_none.mbt": [ "wasm" ],
+    "run_wasm_gc.mbt": [ "wasm-gc" ],
+  },
+)
