@@ -15,3 +15,21 @@ test "own_metadata matches the library API" {
     @moon_shadow_example.describe(),
   )
 }
+
+///|
+test "git info is baked in, not probed at runtime" {
+  let git = @moon_shadow.git()
+  // The implementation here is this module's own; how much git it saw depends
+  // on the checkout the build ran in, so only the invariant is asserted.
+  assert_eq(git.available, !git.commit.is_empty())
+}
+
+///|
+test "git describe never ends in a dangling separator" {
+  let text = @moon_shadow_example.git_describe()
+  if @moon_shadow.git().available {
+    assert_true(text != "unavailable")
+  } else {
+    assert_eq(text, "unavailable")
+  }
+}

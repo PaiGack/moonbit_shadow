@@ -2,7 +2,10 @@ package "PaiGack/moon_shadow/shadow"
 
 import {
   "PaiGack/moon_shadow/core",
+  "PaiGack/moon_shadow/gitinfo",
 }
 
 // Values
 pub fn module_info() -> @core.ModuleInfo
+
+pub fn git_info() -> @gitinfo.GitInfo

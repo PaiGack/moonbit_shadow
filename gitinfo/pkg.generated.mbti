@@ -1,0 +1,54 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "PaiGack/moon_shadow/gitinfo"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Types and methods
+pub(all) struct GitInfo {
+  available : Bool
+  branch : String
+  tag : String
+  describe : String
+  commit : String
+  short_commit : String
+  commit_date : String
+  author : String
+  email : String
+  dirty : Bool
+  ahead : Int
+  behind : Int
+} derive(Eq, @debug.Debug)
+pub fn GitInfo::commit_version(Self, short~ : Bool = ..) -> String
+pub fn GitInfo::describe_version(Self) -> String
+#deprecated
+pub fn GitInfo::equal(Self, Self) -> Bool
+pub fn GitInfo::is_dirty(Self) -> Bool
+pub fn GitInfo::none() -> Self
+#deprecated
+pub fn GitInfo::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn GitInfo::to_repr(Self) -> @debug.Repr
+pub fn GitInfo::to_version_string(Self) -> String
+
+pub(all) struct RawGitInfo {
+  branch : String
+  tag : String
+  describe : String
+  commit : String
+  short_commit : String
+  commit_date : String
+  author : String
+  email : String
+  status : String
+  upstream_count : String
+}
+pub fn RawGitInfo::empty() -> Self
+pub fn RawGitInfo::to_git_info(Self) -> GitInfo
+
+// Type aliases
+
+// Traits
