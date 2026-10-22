@@ -74,12 +74,18 @@ options(
 
 rule(
   name: "gen",
-  command: "moon run --target js --target-dir _build/gen gen -- $input $output",
+  command: "moon run --target js --target-dir _build/gen <path-to>/moon_shadow/gen/main.mbt -- $input $output",
 )
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
 ```
 
-4. Run `moon check` once and commit `shadow_impl/generated.mbt`.
+The command runs in your module root, and `$input` / `$output` are paths
+relative to it. `gen/main.mbt` is run as a standalone file, so your module does
+not need a dependency on it — only a path. Keep it in a `moon.work` beside the
+library, as `moon_shadow_example/` does, and that path stays a plain `../`.
+
+4. Run `moon check` once and commit `shadow_impl/generated.mbt`. From then on
+   `moon check` / `moon run` regenerate it whenever `moon.mod` changes.
 
 `moon_shadow_example/` is exactly this setup, end to end.
 

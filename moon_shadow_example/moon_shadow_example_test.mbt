@@ -1,7 +1,10 @@
 ///|
 test "describe reads this module's own moon.mod" {
+  // Compare against the metadata the build baked in, so a `moon.mod` version
+  // bump needs no edit here.
+  let info = @moon_shadow.current()
   let text = @moon_shadow_example.describe()
-  assert_true(text.contains("nrzhangsan/moon_shadow_example@0.2.0"))
+  assert_eq(text, "\{info.name}@\{info.version} (\{info.preferred_target})")
   assert_true(text.contains("wasm-gc"))
 }
 
