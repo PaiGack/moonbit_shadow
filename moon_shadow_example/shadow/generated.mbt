@@ -12,8 +12,7 @@ pub fn module_info() -> @core.ModuleInfo {
     preferred_target: "wasm-gc",
     supported_targets: [],
     deps: [
-      { name: "PaiGack/moon_shadow", version: "0.1.2" },
-      { name: "PaiGack/moon_shadow", version: "0.1.2" },
+      { name: "PaiGack/moon_shadow", version: "0.1.0" },
     ],
   }
 }

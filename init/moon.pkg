@@ -1,7 +1,0 @@
-import {
-  "PaiGack/moon_shadow/core",
-  "moonbitlang/x/fs",
-  "moonbitlang/core/env",
-}
-
-pkgtype(kind: "executable")
