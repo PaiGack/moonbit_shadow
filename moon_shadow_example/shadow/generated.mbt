@@ -22,12 +22,12 @@ pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo {
 pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
   {
     available: true,
-    branch: "auto/fix-gen-targets-abcf",
+    branch: "fix/gen-targets-and-warnings",
     tag: "",
-    describe: "803aae6",
-    commit: "803aae6668f6e264b8f493e126687f8bd60a8a9e",
-    short_commit: "803aae6",
-    commit_date: "2026-10-22T21:28:16+08:00",
+    describe: "05f1943",
+    commit: "05f1943cdca2aa7f31afc4a07807b90f6ad91626",
+    short_commit: "05f1943",
+    commit_date: "2026-10-22T23:15:37+08:00",
     author: "rzhangsan",
     email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
     dirty: true,
