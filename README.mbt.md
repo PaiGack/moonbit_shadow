@@ -5,15 +5,16 @@ shipping `moon.mod` and without touching the filesystem.
 
 ```moonbit nocheck
 let info = @moon_shadow.current()
-println(info.name)           // "nrzhangsan/moon_shadow"
-println(info.version)        // "0.1.0"
-println(info.long_version()) // "nrzhangsan/moon_shadow@0.1.0"
+println(info.name)                          // "nrzhangsan/moon_shadow"
+println(info.version)                       // "0.1.0"
+println(info.long_version())                // "nrzhangsan/moon_shadow@0.1.0"
+println(info.dep("moonbitlang/moon_config")) // Some(...)
 ```
 
 ## How it works
 
-`moon.mod` is read once, at build time. A `dev_build` rule regenerates
-`shadow/generated.mbt`, so the values are baked into the binary:
+`moon.mod` is read once, at build time, and the values are compiled into the
+artifact:
 
 ```
 moon.mod --(gen rule)--> shadow/generated.mbt --(compile)--> current()
@@ -23,57 +24,83 @@ At runtime there is no file I/O, no `git` and no environment sniffing — just
 struct field reads.
 
 The metadata crosses the build boundary through the virtual package
-`nrzhangsan/moon_shadow/shadow`. That indirection is what lets a *consumer*
-supply its own values instead of the library's.
+`nrzhangsan/moon_shadow/shadow`, which exposes a single accessor:
 
-The `moon.mod` DSL itself is parsed by
-[`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config)
-rather than by hand, so diagnostics for duplicate or unknown keys come for free.
+```moonbit nocheck
+pub fn module_info() -> @core.ModuleInfo
+```
+
+The `shadow` package ships a default implementation generated from *this*
+module's `moon.mod`. A consumer points `options(overrides: [...])` at its own
+implementation — the one generated from *its* `moon.mod` — and `current()`
+starts reporting that module's metadata instead.
+
+The `moon.mod` DSL is parsed by
+[`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config);
+there is no hand-written parser here, so diagnostics for duplicate or unknown
+keys come along for free.
 
 ## API
 
 | Name | Description |
 |---|---|
-| `current()` | `ModuleInfo` of the module that pulled the library in |
+| `current()` | `ModuleInfo` of the module that was built |
+| `ModuleInfo::dep` | look a dependency up by module name |
 | `ModuleInfo::long_version` | `"name@version"`, the shape `moon add` takes |
-| fields | `name` `version` `description` `license` `repository` `readme` `keywords` `preferred_target` |
+| `ModuleInfo::to_long_version_string` | `"name version description"`, for `--version` output |
+| fields | `name` `version` `description` `license` `repository` `readme` `keywords` `preferred_target` `supported_targets` `deps` |
 
 ## Repo layout
 
 ```
-.                    moon_shadow, the library
-modfile/             parse_moon_mod: moon.mod source -> ModuleInfo + errors
-shadow/              virtual package, its generated implementation, gen rule
-gen/                 build-time generator, writes shadow/generated.mbt
-moon_shadow_example/ a real consumer of the library
-moon.work            workspace tying both modules together
+core/                ModuleInfo / Dependency, `moon_config` parsing, codegen
+gen/                 the generator executable, `moon.mod` -> implementation
+shadow/              virtual package + its generated default, gen rule
+moon_shadow.mbt      the public API: current()
+moon_shadow_example/ a consumer module, with its own moon.work workspace
 ```
+
+## Using it in your own module
+
+1. Depend on `nrzhangsan/moon_shadow`.
+2. Copy `moon_shadow_example/shadow_impl/` into your module and swap the module
+   name in `moon.pkg`.
+3. Point the packages that need the metadata at it:
+
+```moonbit nocheck
+options(
+  overrides: [ "your/module/shadow_impl" ],
+)
+
+rule(
+  name: "gen",
+  command: "moon run --target js --target-dir _build/gen gen -- $input $output",
+)
+dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
+```
+
+4. Run `moon check` once and commit `shadow_impl/generated.mbt`.
+
+`moon_shadow_example/` is exactly this setup, end to end.
 
 ## Behaviour worth knowing
 
 These come from how `moon` handles virtual packages and pre-build rules, and
 they shape what this library can promise:
 
-- **The module that owns `moon.mod` must own the implementation.** A module
-  cannot override its own virtual package, and a virtual package's `pkg.mbti`
-  only accepts flat function declarations. That is why `shadow/` declares one
-  `module_*` function per field instead of a struct with accessors.
+- **A `moon.pkg`-declared virtual package must expose functions, not values.**
+  `moon` type-checks a virtual package's implementations against `pkg.mbti`, and
+  a `pub let` of a type from another package fails that check even though it
+  compiles in the implementing package. Hence `module_info()` rather than
+  `module_info`.
 - **`current()` describes whoever provided the implementation**, not whoever
-  called it. `moon_shadow_example/` shows both sides: `describe()` goes through
-  `modinfo` and reports the library's baked-in values, while `own_metadata()`
-  imports the `shadow` virtual package directly and, with its
-  `overrides: [ "nrzhangsan/moon_shadow_example/shadow_impl" ]`, gets its own
-  `moon.mod` values.
-- **Downstream modules never run build rules.** `shadow/generated.mbt` is
-  committed, and consumers commit their own generated implementation too. After
-  changing `moon.mod`, run `moon check` and commit the result.
-- **Regeneration needs one command.** `moon build` / `moon check` run the rule;
-  if the output is missing, the very first run can pass before the file exists,
-  so run it twice on a fresh clone.
-- **The example's implementation has no build rule of its own.** `shadow_impl/`
-  sits inside a workspace member, and a pre-build rule there runs with the
-  example as cwd, where the `gen` package is not reachable. Refresh it by hand:
-  `moon run --target js --target-dir _build/gen gen -- moon_shadow_example/moon.mod moon_shadow_example/shadow_impl/generated.mbt`.
-- **`preferred_target` is normalized.** `moon_config` reports it as
-  `preferred-target`, while `options(preferred_target: ...)` keeps the
-  underscore form; the parser accepts both.
+  called it. `moon_shadow_example/` shows both sides: without an override you
+  get the library's baked-in values, with one you get your own.
+- **A module cannot override its own virtual package.** That is why the example
+  is a separate module rather than another package inside `moon_shadow`.
+- **Downstream modules never run build rules.** Implementations are committed;
+  after editing `moon.mod`, run `moon check` and commit the result. CI fails
+  with a diff if you forget.
+- **Escapes are decoded once.** `moon_config` returns string literals in their
+  raw source form (`"a \"b\""` yields `a \"b\"`), so `core` unescapes before
+  re-emitting them; otherwise every regeneration would double the backslashes.

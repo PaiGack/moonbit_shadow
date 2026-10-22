@@ -1,12 +1,13 @@
 ///|
-/// Describe the module this example was built in, using `moon_shadow`.
+/// Describe the module this example was built in, through the library API.
 pub fn describe() -> String {
-  let info = @moon_shadow_info.current()
+  let info = @moon_shadow.current()
   "\{info.name}@\{info.version} (\{info.preferred_target})"
 }
 
 ///|
-/// The metadata the example's own `shadow_impl` supplied for this module.
+/// The same values as seen by this module's own `shadow_impl` override.
 pub fn own_metadata() -> String {
-  "\{@moon_shadow_shadow.module_name()}@\{@moon_shadow_shadow.module_version()} (\{@moon_shadow_shadow.module_preferred_target()})"
+  let info = @shadow.module_info()
+  "\{info.name}@\{info.version} (\{info.preferred_target})"
 }

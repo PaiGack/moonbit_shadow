@@ -1,3 +1,5 @@
 #!/bin/sh
 
-moon check
+# Regenerate the committed implementations before anything is staged, so the
+# build-time metadata can never drift away from `moon.mod`.
+moon check >/dev/null 2>&1 || moon check
