@@ -3,7 +3,7 @@
 
 name = "PaiGack/moon_shadow"
 
-version = "0.2.3"
+version = "0.3.0"
 
 readme = "README.mbt.md"
 
@@ -11,7 +11,7 @@ repository = "https://github.com/PaiGack/moonbit_shadow"
 
 license = "Apache-2.0"
 
-keywords = [ "shadow", "build-info", "metadata" ]
+keywords = [ "shadow", "build-info", "metadata", "git-info" ]
 
 preferred_target = "wasm-gc"
 
