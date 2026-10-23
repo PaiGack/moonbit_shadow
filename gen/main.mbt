@@ -10,7 +10,7 @@
 ///
 /// The rule's input is `moon.mod` and nothing else: git state deliberately
 /// stays out of it, or every build-time write would invalidate itself — the
-/// generator commits `git status`, and its own output is a tracked file. Git is
+/// generator reports `git status`, and its own output is a tracked file. Git is
 /// captured before the output is written, and `dirty` counts tracked files only,
 /// so a regenerated file does not mark the build dirty. A new commit does not
 /// re-trigger the rule; `moon clean` picks it up.

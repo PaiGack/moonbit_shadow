@@ -1,0 +1,8 @@
+import {
+  "PaiGack/moon_shadow/gitinfo",
+  "moonbitlang/async/process",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "library")
