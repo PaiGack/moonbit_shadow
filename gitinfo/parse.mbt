@@ -92,8 +92,8 @@ fn parse_counts(raw : String) -> (Int32, Int32) {
 }
 
 ///|
-/// Interpret the captured output. `available` is decided by the caller: only it
-/// knows whether git actually ran.
+/// Interpret the captured output. `available` is decided by the caller: an
+/// emptied-out `RawGitInfo` is how "no git here" arrives.
 pub fn RawGitInfo::to_git_info(self : RawGitInfo) -> GitInfo {
   let (ahead, behind) = parse_counts(self.upstream_count)
   {

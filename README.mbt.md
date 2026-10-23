@@ -39,7 +39,7 @@ virtual(implement: "PaiGack/moon_shadow/shadow")
 
 rule(
   name: "gen",
-  command: "moon run --target js --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen/main.mbt -- --meta-path PaiGack/moon_shadow/mooninfo --git-path PaiGack/moon_shadow/gitinfo \"$input\" \"$output\"",
+  command: "moon run --target native --target-dir _build/gen .mooncakes/PaiGack/moon_shadow/gen -- \"$input\" \"$output\"",
 )
 
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
@@ -75,7 +75,12 @@ options(
 `/bin/sh`，以及（想拿到 git 信息时）`git`。
 
 没有 git 不要紧：生成器照常写出 `git_info().available = false`，构建不会因此
-失败。
+失败，只在 stdout 上说一句。
+
+那条命令没有参数要你按自己模块改写：`$input` 是 `moon` 展开的
+`../moon.mod`，模块名就从这份文件里读；生成的代码里那两个类型路径
+（`PaiGack/moon_shadow/mooninfo`、`.../gitinfo`）对每个使用者都一样
+——实现包总是从本库 import 它们——所以是常量。
 
 `gen` 这个包同时给 `js` / `wasm-gc` 备了 shim（`js` 走 `process.binding`，
 `wasm-gc` 没有进程模型、直接降级），所以你 `override` 想换成别的后端也能跑，
@@ -95,8 +100,8 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo
 ```
 
 两个类型都写**完整包路径**而不是别名：虚拟包的实现要按这份 `pkg.mbti` 检查，
-而实现包自己的 `moon.pkg` 把这两个包叫什么别名，使用者说了算。`gen` 的
-`--meta-path` / `--git-path` 就是这两个路径，生成的代码与 `pkg.mbti` 因此总能对上。
+而实现包自己的 `moon.pkg` 把这两个包叫什么别名，使用者说了算。这两个路径在
+生成器里是常量，生成的代码与 `pkg.mbti` 因此总能对上。
 
 `shadow` 包自带一份从*本*模块的 `moon.mod` 和本仓库的 git 生成的默认实现。
 使用者通过 `options(overrides: [...])` 指向自己的实现——即从*它自己*的
@@ -178,7 +183,7 @@ moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
   「重新生成 = 无 diff」，CI 里那句 `git diff --exit-code` 才有意义。
 - **非 git 环境不让构建失败。** 不是仓库、没装 git，生成器照常写文件，
   `available = false`、其余字段为空串 / 0，并在 stdout 上说一句。
-- **所有 git 调用带 `GIT_OPTIONAL_LOCKS=0`**，避免抢 `index.lock` 卡住用户
+- **所有 git 调用带 `--no-optional-locks`**，避免抢 `index.lock` 卡住用户
   自己的 `git commit`。
 - **转义只解码一次。** `moon_config` 返回的字符串字面量是源码原始
   形式（`"a \"b\""` 得到 `a \"b\"`），因此 `mooninfo` 会在重新生成前

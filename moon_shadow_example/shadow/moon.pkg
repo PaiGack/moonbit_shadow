@@ -7,7 +7,7 @@ virtual(implement: "PaiGack/moon_shadow/shadow")
 
 rule(
   name: "gen",
-  command: "moon run --target native --target-dir _build/gen ../gen -- --meta-path PaiGack/moon_shadow/mooninfo --git-path PaiGack/moon_shadow/gitinfo \"$input\" \"$output\"",
+  command: "moon run --target native --target-dir _build/gen ../gen -- \"$input\" \"$output\"",
 )
 
 dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")

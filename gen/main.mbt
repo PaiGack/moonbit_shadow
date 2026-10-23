@@ -5,10 +5,8 @@
 /// The last two arguments are the rule's `$input` and `$output`. `moon run`
 /// may wrap the executable (`node`, `wasmtime`, `--`) and may append flags of
 /// its own, so counting from this end is the only stable way to find them.
-/// `--meta-path` / `--git-path` are optional and name the full package paths the
-/// generated code uses for `ModuleInfo` and `GitInfo`. They default to this
-/// module's own; a consumer overriding the virtual package passes the same
-/// strings its own `pkg.mbti` declares.
+/// Neither is optional: the rule is the same one shape for every consumer, and
+/// nothing in it has to be rewritten by hand.
 ///
 /// The rule's input is `moon.mod` and nothing else: git state deliberately
 /// stays out of it, or every build-time write would invalidate itself — the
@@ -23,24 +21,17 @@
 fn main {
   let args = @env.args()
   if args.length() < 2 {
-    println(
-      "usage: gen [--meta-path <pkg>] [--git-path <pkg>] <moon.mod> <output.mbt>",
-    )
+    println("usage: gen <moon.mod> <output.mbt>")
     return
   }
   let input = args[args.length() - 2]
   let output = args[args.length() - 1]
   // The generated file names both types by full package path, and it has to
-  // agree with the consuming `pkg.mbti`. Defaults are this module's own paths;
-  // a consumer through the registry passes its own. See `gen/render.mbt`.
-  let meta_path = match flag(args, "--meta-path") {
-    "" => "PaiGack/moon_shadow/mooninfo"
-    path => path
-  }
-  let git_path = match flag(args, "--git-path") {
-    "" => "PaiGack/moon_shadow/gitinfo"
-    path => path
-  }
+  // agree with the consuming `pkg.mbti`. Every implementation imports them from
+  // this module, so the paths are constants rather than rule arguments. See
+  // `gen/render.mbt`.
+  let meta_path = "PaiGack/moon_shadow/mooninfo"
+  let git_path = "PaiGack/moon_shadow/gitinfo"
   let source = @fs.read_file_to_string(input) catch {
     _ => {
       println(
@@ -62,14 +53,8 @@ fn main {
   // cwd is the consumer's module directory, so `rev-parse` walks up to *their*
   // repository root — exactly whose git state we want to report.
   let cwd = dirname(input)
-  let git_info = if git_available(cwd) {
-    collect_git_info(cwd).to_git_info()
-  } else {
-    println(
-      "moon_shadow: \{cwd} is not a git work tree, baking in git_info().available = false",
-    )
-    @gitinfo.GitInfo::none()
-  }
+  let git_info = collect_git_info(cwd)
+  print_unavailable(cwd, git_info)
   let body = render(
     git_info,
     @mooninfo.render_module_info(parsed.info, pkg_path=meta_path),
@@ -77,5 +62,16 @@ fn main {
   )
   @fs.write_string_to_file(output, body) catch {
     _ => println("moon_shadow: cannot write \{output}")
+  }
+}
+
+///|
+/// Say why `git_info()` carries nothing. A build without git still has to
+/// succeed, and silence would leave the empty fields unexplained.
+fn print_unavailable(cwd : String, info : @gitinfo.GitInfo) -> Unit {
+  if !info.available {
+    println(
+      "moon_shadow: no git checkout at \{cwd}, baking in git_info().available = false",
+    )
   }
 }
