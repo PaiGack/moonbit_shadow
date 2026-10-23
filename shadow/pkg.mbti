@@ -9,3 +9,5 @@ import {
 pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo
 
 pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo
+
+pub fn toolchain_versions() -> (String, String)

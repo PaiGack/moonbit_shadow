@@ -1,5 +1,6 @@
 import {
   "PaiGack/moon_shadow",
+  "PaiGack/moon_shadow/buildinfo",
   "PaiGack/moon_shadow_example",
 }
 

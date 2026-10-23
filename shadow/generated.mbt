@@ -12,6 +12,7 @@ pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo {
     preferred_target: "wasm-gc",
     supported_targets: [],
     deps: [
+      { name: "moonbitlang/async", version: "0.22.5" },
       { name: "moonbitlang/moon_config", version: "0.4.5" },
       { name: "moonbitlang/x", version: "0.5.6" },
     ],
@@ -25,9 +26,9 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
     available: true,
     branch: "main",
     tag: "",
-    describe: "530e4d7",
-    commit: "530e4d7f379303100732b9444ed3c1bb0ae21998",
-    short_commit: "530e4d7",
+    describe: "3d11c12",
+    commit: "3d11c12bb76b6129eff5cdf37ad367c06183382e",
+    short_commit: "3d11c12",
     commit_date: "",
     author: "",
     email: "",
@@ -35,4 +36,10 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
     ahead: 0,
     behind: 0,
   }
+}
+
+///|
+/// Toolchain versions captured when the generator ran.
+pub fn toolchain_versions() -> (String, String) {
+  ("0.1.20261020", "v0.10.16+b1a0e846e")
 }

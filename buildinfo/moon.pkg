@@ -1,0 +1,10 @@
+import {
+  "PaiGack/moon_shadow/shadow",
+}
+
+options(
+  targets: {
+    "profile_debug.mbt": [ "debug" ],
+    "profile_release.mbt": [ "release" ],
+  },
+)

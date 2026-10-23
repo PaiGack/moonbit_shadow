@@ -13,6 +13,12 @@ fn main {
   println("  commit:     \{git.commit}")
   println("  dirty:      \{git.dirty}")
   println("  version:    \{@moon_shadow_example.git_describe()}")
+  let build = @buildinfo.info
+  println("build:")
+  println("  moon:       \{build.moon_version}")
+  println("  moonc:      \{build.moonc_version}")
+  println("  profile:    \{build.profile}")
+  println("  target:     \{build.target}")
   println("deps:")
   for dep in info.deps {
     println("  \{dep.name} = \{dep.version}")

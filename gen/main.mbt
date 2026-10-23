@@ -18,7 +18,7 @@
 /// The output is always written, never diffed and skipped: if a checkout is
 /// missing it because the consumer's `dev_build` rule cannot reach this package,
 /// leaving it absent would break the build instead of merely going stale.
-fn main {
+async fn main {
   let args = @env.args()
   if args.length() < 2 {
     println("usage: gen <moon.mod> <output.mbt>")
@@ -54,9 +54,11 @@ fn main {
   // repository root — exactly whose git state we want to report.
   let cwd = dirname(input)
   let git_info = collect_git_info(cwd)
+  let toolchain_versions = collect_toolchain_versions()
   let body = render(
     git_info,
     @mooninfo.render_module_info(parsed.info, pkg_path=meta_path),
+    toolchain_versions,
     git_path~,
   )
   @fs.write_string_to_file(output, body) catch {

@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "PaiGack/moon_shadow/buildinfo"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub let info : BuildInfo
+
+// Errors
+
+// Types and methods
+pub(all) struct BuildInfo {
+  moon_version : String
+  moonc_version : String
+  profile : String
+  target : String
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn BuildInfo::equal(Self, Self) -> Bool
+#deprecated
+pub fn BuildInfo::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn BuildInfo::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

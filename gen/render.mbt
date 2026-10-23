@@ -19,6 +19,7 @@ fn quoted_line(name : String, quoted : String) -> String {
 fn render(
   git : @gitinfo.GitInfo,
   module_block : String,
+  toolchain_versions : (String, String),
   git_path~ : String,
 ) -> String {
   let at_git = "@" + git_path
@@ -45,6 +46,14 @@ fn render(
   lines.push("    ahead: \{git.ahead},")
   lines.push("    behind: \{git.behind},")
   lines.push("  }")
+  lines.push("}")
+  lines.push("")
+  lines.push("///|")
+  lines.push("/// Toolchain versions captured when the generator ran.")
+  lines.push("pub fn toolchain_versions() -> (String, String) {")
+  lines.push(
+    "  (\{@mooninfo.quote(toolchain_versions.0)}, \{@mooninfo.quote(toolchain_versions.1)})",
+  )
   lines.push("}")
   lines.join("\n") + "\n"
 }
