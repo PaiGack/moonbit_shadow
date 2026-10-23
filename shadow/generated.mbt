@@ -3,7 +3,7 @@
 pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo {
   {
     name: "PaiGack/moon_shadow",
-    version: "0.3.1",
+    version: "0.3.2",
     description: "Read a MoonBit module's own moon.mod and git metadata at runtime, baked in at build time.",
     license: "Apache-2.0",
     repository: "https://github.com/PaiGack/moonbit_shadow",
@@ -26,10 +26,10 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
     available: true,
     branch: "main",
     tag: "",
-    describe: "fa136a9",
-    commit: "fa136a9c314432fc15890165be588f1148acea35",
-    short_commit: "fa136a9",
-    commit_date: "2026-10-23T18:28:07+08:00",
+    describe: "7f719f3",
+    commit: "7f719f3bedabb980b66becd7f8a28bfc99f39ef0",
+    short_commit: "7f719f3",
+    commit_date: "2026-10-23T18:46:00+08:00",
     author: "rzhangsan",
     email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
     dirty: true,
