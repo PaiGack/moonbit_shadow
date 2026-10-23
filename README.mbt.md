@@ -1,22 +1,14 @@
 # moon_shadow
 
-在**运行时**读取 MoonBit 模块自己的元数据——`moon.mod` 的字段，以及构建那次
-checkout 的 git 状态。两者都在构建期采集一次、烘焙进产物，运行时没有文件
-I/O、没有 git、没有环境变量嗅探。
+存储在 **MoonBit** 项目中的构建时间信息。
 
-```moonbit nocheck
-let info = @moon_shadow.current()
-println(info.name)                          // "PaiGack/moon_shadow"
-println(info.version)                       // "0.1.1"
-println(info.long_version())                // "PaiGack/moon_shadow@0.1.1"
-println(info.dep("moonbitlang/moon_config")) // Some(...)
+允许您在运行时访问构建过程和环境的属性，包括：
 
-let git = @moon_shadow.git()
-println(git.branch)                         // "main"
-println(git.to_version_string())            // "main-dirty 50a396b-dirty"
-```
-
-与运行时方案相比还有一个额外好处：烘焙进产物就是纯常量，`wasm-gc` / `js` / `native` 一样能用，不需要为读 git 限制 target。
+- `moon.mod` 信息，比如项目版本 依赖信息
+- `git` 信息，比如生成构建工件的提交
+- 编译中使用了哪个版本的 `Moonbit` 工具链
+- 构建变体，例如： 或 `debug` `release`
+- 还有更多...
 
 ## 快速上手
 
@@ -54,9 +46,7 @@ dev_build(rule: "gen", input: "../moon.mod", output: "generated.mbt")
 
    也可以不手写：把 `moon_shadow_example/shadow/` 整个复制到你的模块里。
 
-3. 让读取元数据的包指向你的实现——在每一个构建路径会经过
-   `@moon_shadow.current()` / `@moon_shadow.git()` 的 `moon.pkg` 里加上 import
-   和 override：
+3. 让读取元数据的包指向你的实现——在每一个构建路径里加上 `import` 和 `override`：
 
 ```
 import {
@@ -68,42 +58,29 @@ options(
 )
 ```
 
-## 生成器跑在哪个后端
+```moonbit nocheck
+let info = @moon_shadow.current()
+println(info.name)                          // "PaiGack/moon_shadow"
+println(info.version)                       // "0.1.1"
+println(info.long_version())                // "PaiGack/moon_shadow@0.1.1"
+println(info.dep("moonbitlang/moon_config")) // Some(...)
 
-**任何一个。** 生成器不再起进程、不再读 shell，所以 `native` / `llvm` /
-`js` / `wasm-gc` 上是同一份代码。
+let git = @moon_shadow.git()
+println(git.branch)                         // "main"
+println(git.to_version_string())            // "main-dirty 50a396b-dirty"
+```
 
-`.git` 里的东西是**直接读文件**的，就像 git 自己做的那样：
+## 仓库结构
 
-- `HEAD`、它指向的 ref、`packed-refs`、`refs/tags/*` — `branch`、`tag`、
-  `describe`、`commit`、`short_commit`
-- `.git` 是文件时（linked worktree、submodule）顺着 `gitdir:` / `commondir`
-  找过去
-- 松散的 commit object（zlib、DEFLATE）— `commit_date`、`author`、`email`，
-  以及走提交图要用的 parent
-- `.git/index` — `dirty`（逐文件重算 blob id 与索引里的记录比对）
-- `.git/config` 里的 `branch.<name>.merge` / `remote` — `ahead` / `behind`
-
-也就是说 `GitInfo` 的 12 个字段**全部**从 `.git` 读出来，没有一项要问
-`git` 命令。没有 git、没有 shell、Windows 上没装 MSVC 的 CRT，都不影响。
-
-那条命令没有参数要你按自己模块改写：`$input` 是 `moon` 展开的
-`../moon.mod`，模块名就从这份文件里读；生成的代码里那两个类型路径
-（`PaiGack/moon_shadow/mooninfo`、`.../gitinfo`）对每个使用者都一样
-——实现包总是从本库 import 它们——所以是常量。
-
-非 git 环境照常写出 `git_info().available = false`，构建不会因此失败，只在
-stdout 上说一句。
-
-### 读不到的部分
-
-有两处刻意"读不到就空着"，而不是猜一个值：
-
-- **打包过的对象。** `objects/pack/*.pack` 需要完整实现 delta 链，收益不抵
-  复杂度。松散的 commit object 能读，`git gc` 之后的新 clone 里 `commit_date`
-  等三项会留空（`ahead` / `behind` 也随之退化为 0）。
-- **符号链接条目。** 链接在索引里存的是目标路径本身，而 `@fs` 的读取会跟随
-  链接；这类条目在 `dirty` 里被跳过，避免把一个干净的 checkout 判成脏。
+```
+mooninfo/            ModuleInfo / Dependency、moon_config 解析、moon.mod 侧渲染
+gitinfo/             GitInfo 类型，以及真正读 .git 的那一层：
+                     仓库发现、refs、inflate、commit 对象、index、sha-1
+gen/                 生成器可执行文件：读 moon.mod，调 gitinfo，写出实现文件
+shadow/              虚拟包及其生成的默认实现、gen 规则
+moon_shadow.mbt      公共 API：current()、git()
+moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
+```
 
 ## 工作原理
 
@@ -128,37 +105,9 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo
 报告该模块的元数据。采集规则在消费者模块里执行，cwd 是消费者的模块目录，
 从那里往上找第一个 `.git` 正好落在消费者自己的仓库根上，这就是想要的语义。
 
-`moon.mod` 的 DSL 由
-[`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config)
+- `moon.mod` 的 DSL 由 [`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config)
 解析
-
-## API
-
-| 名称 | 说明 |
-|---|---|
-| `current()` | 被构建模块的 `ModuleInfo` |
-| `git()` | 构建它的那次 checkout 的 `GitInfo` |
-| `ModuleInfo::dep` | 按模块名查找依赖 |
-| `ModuleInfo::long_version` | `"name@version"`，`moon add` 接受的格式 |
-| `ModuleInfo::to_long_version_string` | `"name version description"`，用于 `--version` 输出 |
-| `GitInfo::describe_version` | 分支 / tag / describe 里最具体的那个，脏时带 `-dirty` |
-| `GitInfo::commit_version` | commit（可要短 hash），脏时带 `-dirty` |
-| `GitInfo::to_version_string` | 上面两个拼起来；`available = false` 时是 `"unavailable"` |
-| `GitInfo::is_dirty` | `available && dirty` |
-| `ModuleInfo` 字段 | `name` `version` `description` `license` `repository` `readme` `keywords` `preferred_target` `supported_targets` `deps` |
-| `GitInfo` 字段 | `available` `branch` `tag` `describe` `commit` `short_commit` `commit_date` `author` `email` `dirty` `ahead` `behind` |
-
-## 仓库结构
-
-```
-mooninfo/            ModuleInfo / Dependency、moon_config 解析、moon.mod 侧渲染
-gitinfo/             GitInfo 类型，以及真正读 .git 的那一层：
-                     仓库发现、refs、inflate、commit 对象、index、sha-1
-gen/                 生成器可执行文件：读 moon.mod，调 gitinfo，写出实现文件
-shadow/              虚拟包及其生成的默认实现、gen 规则
-moon_shadow.mbt      公共 API：current()、git()
-moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
-```
+- `git` 相关信息由 [`gitinfo`](./gitinfo/) 负责直接读取 `.git` 中的信息解析  
 
 ## 需要了解的行为
 
@@ -169,18 +118,8 @@ moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
   `pkg.mbti` 类型检查虚拟包的各个实现，而一个来自其他包类型的
   `pub let` 会通不过这个检查——尽管它在实现包里能编译。因此是
   `module_info()` 而不是 `module_info`。
-- **`current()` / `git()` 描述的是提供实现的人**，不是调用它的人。
-  `moon_shadow_example/` 展示了两种情况：没有 override 时得到库
-  baked-in 的值，有 override 时得到你自己的。
 - **模块不能 override 自己的虚拟包。** 这就是示例之所以是独立模块、
   而不是 `moon_shadow` 内另一个包的原因。
-- **来自 registry 的依赖不会运行构建规则。** MoonBit 会跳过 registry
-  依赖被消费时的 pre-build 步骤，所以本库无法替你完成模块的配置：
-  上面的 `shadow` 包需要你自己创建，里面的 `gen` 规则负责让
-  `generated.mbt` 保持新鲜。库在 `shadow/` 里附带的只是给从不
-  override 的使用者的默认实现——也就是说 `moon add` 完，`git()` 拿到的是
-  *本库*烘焙进去的值，不是你的仓库。想要自己仓库的 git 信息，就得自己建
-  `shadow` 包和 `gen` 规则。
 - **`overrides` 是 per-package 的。** 每个构建路径会到达虚拟包的包
   都需要自己的 `options(overrides: [...])`——因此示例在根包和
   `cmd/main` 里各写了一份。
@@ -191,29 +130,3 @@ moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
   包括 release，因为 pre-build 规则并非 debug 专用。提交
   `generated.mbt` 可以把损失限制在「克隆之后又去改 `moon.mod`」
   的场景。
-- **`dirty` 只看已跟踪文件，而且按内容判定。** 索引里记着每个文件被暂存时
-  的 blob id，逐个重算比对即可，不比时间戳——`generated.mbt` 是入库的，用
-  默认行为的话「生成」这个动作本身就会让工作区变脏，然后永远是脏的。
-- **git 不在规则输入里。** `dev_build(input: "../moon.mod")` 只看 `moon.mod`，
-  这是有意的：否则每次 commit 都会让生成物失效、触发重编。代价是 git 变了
-  不会自动重新生成——想让 `git_info()` 跟上新 commit，`moon clean` 一下让
-  `generated.mbt` 重新生成即可。发布构建本来就在全新的 checkout 上跑，不受
-  影响。
-- **生成内容对同一份输入完全确定**（不写时间戳、不写随机值），所以
-  「重新生成 = 无 diff」，CI 里那句 `git diff --exit-code` 才有意义。
-- **非 git 环境不让构建失败。** 不是仓库、`.git` 指向不存在的目录，生成器
-  照常写文件，`available = false`、其余字段为空串 / 0，并在 stdout 上说一句。
-- **生成器不碰锁。** 它只读文件，从不调 `git`，所以不会抢 `index.lock`
-  卡住你自己的 `git commit`。
-- **转义只解码一次。** `moon_config` 返回的字符串字面量是源码原始
-  形式（`"a \"b\""` 得到 `a \"b\"`），因此 `mooninfo` 会在重新生成前
-  做一次反转义；否则每次重新生成都会让反斜杠翻倍。`unescape` 与
-  `mooninfo::quote` 互为逆运算，`\u{...}` / `\xNN` / `\oNNN` / 续行
-  都在内，所以「重新生成 = 无 diff」对含转义的 `moon.mod` 也成立。
-- **生成物不带尾逗号。** 早先的渲染器刻意复刻 `moon fmt` 的尾逗号，
-  但 `moon fmt` 对字面量的输出并不带它；生成的代码现在就是格式化后的样子，
-  提交前不再需要手工格式化。
-- **包名。** `mooninfo` 装的是 `moon.mod` 的一半，`gitinfo` 装 git 的一半，
-  命名对齐；`0.1.x` 里的 `core` 包在 `0.2.0` 改名为 `mooninfo`，升级时把
-  `moon.pkg` 里的 `PaiGack/moon_shadow/core` 换成
-  `PaiGack/moon_shadow/mooninfo` 并重新生成一次 `generated.mbt` 即可。
