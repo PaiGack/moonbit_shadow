@@ -70,37 +70,40 @@ options(
 
 ## 生成器跑在哪个后端
 
-**native**。prebuild 里那条命令是 `moon run --target native gen`，生成器不依赖
-任何运行时，也不依赖一个能用的 shell。
+**任何一个。** 生成器不再起进程、不再读 shell，所以 `native` / `llvm` /
+`js` / `wasm-gc` 上是同一份代码。
 
-`.git` 里的东西是**直接读文件**的，就像 git 自己做的那样：`HEAD`、它指向的
-ref、`packed-refs`、`refs/tags/*`，以及 `.git` 是文件时（linked worktree、
-submodule）顺着 `gitdir:` / `commondir` 找过去。`branch`、`tag`、`describe`、
-`commit`、`short_commit` 都从这几份文件里来。
+`.git` 里的东西是**直接读文件**的，就像 git 自己做的那样：
 
-剩下几项不是读文件能答的：`commit_date` / `author` / `email` 在 zlib 压过的
-commit object 里，`dirty` 要拿 `index` 和每个文件 `stat` 比对，`ahead/behind`
-要走提交图。前一项用 `git log -1` 补（拿不到就留空），后两项直接留空——宁可
-没有值，也不要一个偶尔错的版本号。
+- `HEAD`、它指向的 ref、`packed-refs`、`refs/tags/*` — `branch`、`tag`、
+  `describe`、`commit`、`short_commit`
+- `.git` 是文件时（linked worktree、submodule）顺着 `gitdir:` / `commondir`
+  找过去
+- 松散的 commit object（zlib、DEFLATE）— `commit_date`、`author`、`email`，
+  以及走提交图要用的 parent
+- `.git/index` — `dirty`（逐文件重算 blob id 与索引里的记录比对）
+- `.git/config` 里的 `branch.<name>.merge` / `remote` — `ahead` / `behind`
 
-没有 git、没有 shell 都不要紧：生成器照常写出 `git_info().available =
-false`，构建不会因此失败，只在 stdout 上说一句。
+也就是说 `GitInfo` 的 12 个字段**全部**从 `.git` 读出来，没有一项要问
+`git` 命令。没有 git、没有 shell、Windows 上没装 MSVC 的 CRT，都不影响。
 
 那条命令没有参数要你按自己模块改写：`$input` 是 `moon` 展开的
 `../moon.mod`，模块名就从这份文件里读；生成的代码里那两个类型路径
 （`PaiGack/moon_shadow/mooninfo`、`.../gitinfo`）对每个使用者都一样
 ——实现包总是从本库 import 它们——所以是常量。
 
-`gen` 这个包同时给 `js` / `wasm-gc` 备了 shim（`js` 走 `process.binding`，
-`wasm-gc` 没有进程模型、直接降级），所以你 `override` 想换成别的后端也能跑，
-只是 `js` 那条路要机器上有 `node` 才拿得到 commit 的三行。
+非 git 环境照常写出 `git_info().available = false`，构建不会因此失败，只在
+stdout 上说一句。
 
-`llvm` 后端在这里和 `native` 共用同一份实现（`popen` 走 libc），代码按
-`target="llvm"` 一并编；但它在 MoonBit 侧仍是 nightly 才有的实验后端，本仓库
-的 CI 只在 Linux 上验 `native`。Windows 上 `popen` 由 `ucrt` 提供（MSVC）或由
-MinGW 的 CRT 提供，**`.git` 那几项不经过它**，所以 `commit_date` / `author` /
-`email` 之外的部分在 MSVC 下同样有值；那三项若 `popen` 不可用就留空，不会让
-构建失败。
+### 读不到的部分
+
+有两处刻意"读不到就空着"，而不是猜一个值：
+
+- **打包过的对象。** `objects/pack/*.pack` 需要完整实现 delta 链，收益不抵
+  复杂度。松散的 commit object 能读，`git gc` 之后的新 clone 里 `commit_date`
+  等三项会留空（`ahead` / `behind` 也随之退化为 0）。
+- **符号链接条目。** 链接在索引里存的是目标路径本身，而 `@fs` 的读取会跟随
+  链接；这类条目在 `dirty` 里被跳过，避免把一个干净的 checkout 判成脏。
 
 ## 工作原理
 
@@ -123,7 +126,7 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo
 使用者通过 `options(overrides: [...])` 指向自己的实现——即从*它自己*的
 `moon.mod` 和*它自己*的 checkout 生成的那份——`current()` / `git()` 便会转而
 报告该模块的元数据。采集规则在消费者模块里执行，cwd 是消费者的模块目录，
-`git rev-parse` 往上找正好落在消费者自己的仓库根上，这就是想要的语义。
+从那里往上找第一个 `.git` 正好落在消费者自己的仓库根上，这就是想要的语义。
 
 `moon.mod` 的 DSL 由
 [`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config)
@@ -149,8 +152,9 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo
 
 ```
 mooninfo/            ModuleInfo / Dependency、moon_config 解析、moon.mod 侧渲染
-gitinfo/             GitInfo 类型、"怎么把一段输出解释成字段"的纯逻辑
-gen/                 生成器可执行文件：读 moon.mod、跑 git、写出实现文件
+gitinfo/             GitInfo 类型，以及真正读 .git 的那一层：
+                     仓库发现、refs、inflate、commit 对象、index、sha-1
+gen/                 生成器可执行文件：读 moon.mod，调 gitinfo，写出实现文件
 shadow/              虚拟包及其生成的默认实现、gen 规则
 moon_shadow.mbt      公共 API：current()、git()
 moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
@@ -187,9 +191,9 @@ moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
   包括 release，因为 pre-build 规则并非 debug 专用。提交
   `generated.mbt` 可以把损失限制在「克隆之后又去改 `moon.mod`」
   的场景。
-- **`dirty` 只看已跟踪文件。** `git status --porcelain --untracked-files=no`。
-  `generated.mbt` 是入库的，用默认行为的话「生成」这个动作本身就会让工作区
-  变脏，然后永远是脏的。
+- **`dirty` 只看已跟踪文件，而且按内容判定。** 索引里记着每个文件被暂存时
+  的 blob id，逐个重算比对即可，不比时间戳——`generated.mbt` 是入库的，用
+  默认行为的话「生成」这个动作本身就会让工作区变脏，然后永远是脏的。
 - **git 不在规则输入里。** `dev_build(input: "../moon.mod")` 只看 `moon.mod`，
   这是有意的：否则每次 commit 都会让生成物失效、触发重编。代价是 git 变了
   不会自动重新生成——想让 `git_info()` 跟上新 commit，`moon clean` 一下让
@@ -197,10 +201,10 @@ moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
   影响。
 - **生成内容对同一份输入完全确定**（不写时间戳、不写随机值），所以
   「重新生成 = 无 diff」，CI 里那句 `git diff --exit-code` 才有意义。
-- **非 git 环境不让构建失败。** 不是仓库、没装 git，生成器照常写文件，
-  `available = false`、其余字段为空串 / 0，并在 stdout 上说一句。
-- **所有 git 调用带 `--no-optional-locks`**，避免抢 `index.lock` 卡住用户
-  自己的 `git commit`。
+- **非 git 环境不让构建失败。** 不是仓库、`.git` 指向不存在的目录，生成器
+  照常写文件，`available = false`、其余字段为空串 / 0，并在 stdout 上说一句。
+- **生成器不碰锁。** 它只读文件，从不调 `git`，所以不会抢 `index.lock`
+  卡住你自己的 `git commit`。
 - **转义只解码一次。** `moon_config` 返回的字符串字面量是源码原始
   形式（`"a \"b\""` 得到 `a \"b\"`），因此 `mooninfo` 会在重新生成前
   做一次反转义；否则每次重新生成都会让反斜杠翻倍。`unescape` 与

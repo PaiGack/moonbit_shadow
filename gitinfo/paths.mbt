@@ -54,19 +54,6 @@ fn normalize(path : String) -> String {
 }
 
 ///|
-/// The directory part of `path`, `.` when there is none.
-///
-/// Hand-rolled for the same reason as the rest of this file: the only caller
-/// wants the directory of `moon.mod`, and the rule reads `../moon.mod`.
-fn dirname(path : String) -> String {
-  match path.rev_find("/") {
-    Some(index) if index > 0 => path[:index].to_owned()
-    Some(_) => "/"
-    None => "."
-  }
-}
-
-///|
 /// `path` names a directory. Missing and unreadable are the same answer: there
 /// is nothing to descend into either way.
 fn is_dir(path : String) -> Bool {
@@ -91,15 +78,21 @@ fn is_file(path : String) -> Bool {
 /// type-checked for wasm-gc, where a native-only FFI would not resolve.
 fn read_text(path : String) -> String {
   let bytes = @fs.read_file_to_bytes(path) catch { _ => return "" }
-  strip_git_whitespace(@utf8.decode_lossy(bytes))
+  trim(@utf8.decode_lossy(bytes))
+}
+
+///|
+fn is_whitespace(ch : Char) -> Bool {
+  ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }
 
 ///|
 /// Whitespace off both ends, everything else kept.
 ///
-/// Not `String::trim`: a ref name may hold any byte the filesystem allows, and
-/// only the line ending git wrote is noise there.
-fn strip_git_whitespace(text : StringView) -> String {
+/// Takes a `StringView` so `split` results do not have to be copied first, and
+/// trims rather than `String::trim` because a ref name may hold any byte the
+/// filesystem allows — only the spaces git wrote are noise there.
+fn trim(text : StringView) -> String {
   let chars = text.to_array()
   let mut end = chars.length()
   while end > 0 && is_whitespace(chars[end - 1]) {
@@ -114,9 +107,4 @@ fn strip_git_whitespace(text : StringView) -> String {
     buf.write_char(chars[i])
   }
   buf.to_string()
-}
-
-///|
-fn is_whitespace(ch : Char) -> Bool {
-  ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
 }

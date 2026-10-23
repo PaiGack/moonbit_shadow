@@ -23,24 +23,25 @@ jobs:
         run: |
           moon check --target wasm-gc
           moon test --target wasm-gc
-      - name: Generated `module_info` must match `moon.mod`
-        # `git_info()` is a snapshot of the commit the file was generated from,
-        # so it is *supposed* to drift — a clean checkout builds at a newer
-        # commit than whatever was committed, and diffing the whole file would
-        # fail on every push. `module_info()` has no such excuse: it is a pure
-        # function of `moon.mod`, so only that half is compared.
+      - name: Generated file must match `moon.mod` and the checkout
+        # Both halves are now deterministic: `module_info()` is a pure function
+        # of `moon.mod`, and `git_info()` is read from this very checkout, so a
+        # fresh clone reproduces the committed file byte for byte. Diffing the
+        # whole file is what catches a generator that silently stops reading a
+        # field.
         run: |
-          strip_git_info() {
-            sed '/^pub fn git_info()/,$d' "$1"
-          }
+          moon check
           for f in shadow/generated.mbt moon_shadow_example/shadow/generated.mbt; do
-            strip_git_info "$f" > /tmp/got.mbt
-            strip_git_info <(git show "HEAD:$f") > /tmp/want.mbt
-            diff -u /tmp/want.mbt /tmp/got.mbt || {
-              echo "::error file=$f::module_info() is stale; run moon check and commit"
+            git show "HEAD:$f" > /tmp/want.mbt
+            diff -u /tmp/want.mbt "$f" || {
+              echo "::error file=$f::generated file is stale; run moon check and commit"
               exit 1
             }
           done
-      - name: The generator itself must compile for the target it runs on
+      - name: The generator compiles for every target
+        # No target-specific code is left in `gen`, so a target that did not
+        # compile would mean a shim crept back in.
         run: |
-          moon check --target js --target-dir _build/gen gen
+          for target in js wasm-gc native; do
+            moon check --target "$target" --target-dir "_build/gen-$target" gen
+          done

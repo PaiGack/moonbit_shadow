@@ -11,9 +11,9 @@
 /// The rule's input is `moon.mod` and nothing else: git state deliberately
 /// stays out of it, or every build-time write would invalidate itself — the
 /// generator commits `git status`, and its own output is a tracked file. Git is
-/// captured before the output is written, and `dirty` counts tracked files only
-/// (`--untracked-files=no`), so a regenerated file does not mark the build
-/// dirty. A new commit does not re-trigger the rule; `moon clean` picks it up.
+/// captured before the output is written, and `dirty` counts tracked files only,
+/// so a regenerated file does not mark the build dirty. A new commit does not
+/// re-trigger the rule; `moon clean` picks it up.
 ///
 /// The output is always written, never diffed and skipped: if a checkout is
 /// missing it because the consumer's `dev_build` rule cannot reach this package,
@@ -50,11 +50,10 @@ fn main {
     )
     return
   }
-  // cwd is the consumer's module directory, so `rev-parse` walks up to *their*
+  // cwd is the consumer's module directory, so the search walks up to *their*
   // repository root — exactly whose git state we want to report.
   let cwd = dirname(input)
-  let (git_info, locate) = collect_git_info(cwd)
-  print_locate(cwd, locate)
+  let git_info = collect_git_info(cwd)
   let body = render(
     git_info,
     @mooninfo.render_module_info(parsed.info, pkg_path=meta_path),
@@ -66,18 +65,15 @@ fn main {
 }
 
 ///|
-/// Say why `git_info()` carries nothing. A build outside a repository still has
-/// to succeed, and silence would leave the empty fields unexplained.
-fn print_locate(cwd : String, locate : @gitinfo.RepoLocate) -> Unit {
-  match locate {
-    @gitinfo.Ok => ()
-    @gitinfo.Missing =>
-      println(
-        "moon_shadow: no git checkout at \{cwd}, baking in git_info().available = false",
-      )
-    @gitinfo.Unreadable =>
-      println(
-        "moon_shadow: \{cwd}/.git names a directory that is not there, baking in git_info().available = false",
-      )
+/// The directory part of `path`, `.` when there is none.
+///
+/// Git state is discovered from the consumer's module directory, and the rule
+/// hands `moon.mod` over as `../moon.mod`, so this is the only path handling
+/// left in `gen`.
+fn dirname(path : String) -> String {
+  match path.rev_find("/") {
+    Some(index) if index > 0 => path[:index].to_owned()
+    Some(_) => "/"
+    None => "."
   }
 }

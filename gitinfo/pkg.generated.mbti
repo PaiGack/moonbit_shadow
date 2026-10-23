@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn parse_commit_lines(String) -> (String, String, String)
+pub fn read_repo_info(String) -> RepoInfo
 
 // Errors
 

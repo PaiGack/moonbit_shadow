@@ -1,1 +1,6 @@
+import {
+  "moonbitlang/x/fs",
+  "moonbitlang/core/encoding/utf8",
+}
+
 pkgtype(kind: "library")

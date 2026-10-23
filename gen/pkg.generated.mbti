@@ -6,9 +6,6 @@ package "PaiGack/moon_shadow/gen"
 // Errors
 
 // Types and methods
-type Head
-
-type Repo
 
 // Type aliases
 

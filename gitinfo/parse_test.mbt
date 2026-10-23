@@ -84,22 +84,6 @@ test "detached head and missing tag stay empty" {
 }
 
 ///|
-test "commit lines split on NUL" {
-  let (date, author, email) = @gitinfo.parse_commit_lines(
-    "2026-10-22T09:14:41+00:00\u{0}Pai2s\u{0}pai2s@example.com\n",
-  )
-  assert_eq(date, "2026-10-22T09:14:41+00:00")
-  assert_eq(author, "Pai2s")
-  assert_eq(email, "pai2s@example.com")
-}
-
-///|
-test "a commit line that is not three fields answers nothing" {
-  assert_eq(@gitinfo.parse_commit_lines(""), ("", "", ""))
-  assert_eq(@gitinfo.parse_commit_lines("only\u{0}two"), ("", "", ""))
-}
-
-///|
 test "available false reads as unavailable" {
   let info = @gitinfo.GitInfo::none()
   assert_false(info.available)
