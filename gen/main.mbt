@@ -26,12 +26,13 @@ async fn main {
   }
   let input = args[args.length() - 2]
   let output = args[args.length() - 1]
-  // The generated file names both types by full package path, and it has to
+  // The generated file names its types by full package path, and it has to
   // agree with the consuming `pkg.mbti`. Every implementation imports them from
   // this module, so the paths are constants rather than rule arguments. See
   // `gen/render.mbt`.
   let meta_path = "PaiGack/moon_shadow/mooninfo"
   let git_path = "PaiGack/moon_shadow/gitinfo"
+  let buildinfo_path = "PaiGack/moon_shadow/buildinfo"
   let source = @fs.read_file_to_string(input) catch {
     _ => {
       println(
@@ -54,12 +55,13 @@ async fn main {
   // repository root — exactly whose git state we want to report.
   let cwd = dirname(input)
   let git_info = collect_git_info(cwd)
-  let toolchain_versions = collect_toolchain_versions()
+  let toolchain = collect_toolchain_info()
   let body = render(
     git_info,
     @mooninfo.render_module_info(parsed.info, pkg_path=meta_path),
-    toolchain_versions,
+    toolchain,
     git_path~,
+    buildinfo_path~,
   )
   @fs.write_string_to_file(output, body) catch {
     _ => println("moon_shadow: cannot write \{output}")

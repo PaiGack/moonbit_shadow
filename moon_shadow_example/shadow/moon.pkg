@@ -1,6 +1,7 @@
 import {
   "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
+  "PaiGack/moon_shadow/buildinfo",
 }
 
 virtual(implement: "PaiGack/moon_shadow/shadow")

@@ -33,3 +33,15 @@ test "git describe never ends in a dangling separator" {
     assert_eq(text, "unavailable")
   }
 }
+
+///|
+test "build info names the toolchain that built this example" {
+  let text = @moon_shadow_example.build_describe()
+  // The generator ran on this machine, so both halves are non-empty unless
+  // `moon version --all` failed — in which case the empty string is the honest
+  // answer, and the format string is all that is left to assert.
+  assert_eq(text.split(" / ").count(), 3)
+  let build = @shadow.build_info()
+  assert_true(build.profile == "debug" || build.profile == "release")
+  assert_true(!build.target.is_empty())
+}

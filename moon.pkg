@@ -2,6 +2,7 @@ import {
   "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
   "PaiGack/moon_shadow/shadow",
+  "PaiGack/moon_shadow/buildinfo",
 }
 
 pkgtype(kind: "library")

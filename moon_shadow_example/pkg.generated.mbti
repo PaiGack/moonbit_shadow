@@ -2,6 +2,8 @@
 package "PaiGack/moon_shadow_example"
 
 // Values
+pub fn build_describe() -> String
+
 pub fn describe() -> String
 
 pub fn git_describe() -> String
