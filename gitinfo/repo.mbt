@@ -1,20 +1,48 @@
 ///|
 /// Where `.git` is and what `HEAD` says. Nothing here is a value the artifact
 /// keeps; it exists so the reading code stays short.
-struct Repo {
+priv struct Repo {
   /// `objects/`, `refs/` and `packed-refs` live here.
   common_dir : String
   /// `HEAD` lives here; differs from `common_dir` in a linked worktree.
   git_dir : String
+  /// The checkout the search started from, for the index and the work tree.
+  work_dir : String
 }
 
 ///|
 /// `HEAD`, resolved.
-enum Head {
+priv enum Head {
   /// A branch (`refs/heads/main`) and the commit it points at.
   Branch(String, String)
   /// A commit id, with no branch naming it.
   Detached(String)
+}
+
+///|
+/// The checkout at `cwd`, read straight out of the files `git` would read.
+///
+/// This is the whole point of the library: the machine that runs the software
+/// has no `.git` and maybe no `git`, and the build machine should not need a
+/// shell either. `HEAD`, the ref it names, `packed-refs`, `refs/tags/*`, the
+/// commit object and the index are all plain files — that is what git reads
+/// too.
+///
+/// `locate` comes back beside the value because it is the one thing worth
+/// printing: "no repository" and "a `.git` that points nowhere" are different
+/// mistakes, and `GitInfo` is baked into the artifact, not logged.
+pub fn read_repo_info(cwd : String) -> RepoInfo {
+  let repo = match discover(cwd) {
+    Some(repo) => repo
+    None => return RepoInfo::empty()
+  }
+  // A `HEAD` that names nothing is a half-written clone. Its refs are stale by
+  // definition, and a stale version number is worse than none.
+  let head = match repo.read_head() {
+    Some(head) => head
+    None => return { ..RepoInfo::empty(), locate: Unreadable, }
+  }
+  head.to_repo_info(repo)
 }
 
 ///|
@@ -29,14 +57,14 @@ fn discover(cwd : String) -> Repo? {
   while true {
     let candidate = join_path(dir, ".git")
     if is_dir(candidate) {
-      return make_repo(candidate)
+      return make_repo(candidate, dir)
     }
     if is_file(candidate) {
       let pointer = read_text(candidate)
       guard pointer.has_prefix("gitdir:") else { return None }
-      let target = normalize(join_path(dir, strip_git_whitespace(pointer[7:])))
+      let target = normalize(join_path(dir, trim(pointer[7:])))
       guard is_dir(target) else { return None }
-      return make_repo(target)
+      return make_repo(target, dir)
     }
     let up = normalize(join_path(dir, ".."))
     if up == dir {
@@ -49,7 +77,7 @@ fn discover(cwd : String) -> Repo? {
 }
 
 ///|
-fn make_repo(git_dir : String) -> Repo? {
+fn make_repo(git_dir : String, work_dir : String) -> Repo? {
   let mut common_dir = git_dir
   let pointer = join_path(git_dir, "commondir")
   if is_file(pointer) {
@@ -58,7 +86,7 @@ fn make_repo(git_dir : String) -> Repo? {
       common_dir = normalize(join_path(git_dir, target))
     }
   }
-  Some({ common_dir, git_dir, })
+  Some({ common_dir, git_dir, work_dir, })
 }
 
 ///|
@@ -76,7 +104,7 @@ fn Repo::read_head(self : Repo) -> Head? {
 fn Repo::resolve_ref_text(self : Repo, text : String, depth~ : Int32) -> Head? {
   guard depth < 5 else { return None }
   if text.has_prefix("ref:") {
-    let name = strip_git_whitespace(text[4:])
+    let name = trim(text[4:])
     guard !name.is_empty() else { return None }
     let commit = self.read_ref(name, depth)
     guard !commit.is_empty() else { return None }
@@ -101,7 +129,7 @@ fn Repo::read_ref(self : Repo, name : String, depth : Int32) -> String {
     // A ref file never holds `ref:`, but a broken one holding it is better
     // followed than returned as if it were a commit id.
     if loose.has_prefix("ref:") {
-      let next = strip_git_whitespace(loose[4:])
+      let next = trim(loose[4:])
       guard depth < 5 && !next.is_empty() else { return "" }
       return self.read_ref(next, depth + 1)
     }
@@ -121,20 +149,31 @@ fn Repo::read_packed_ref(self : Repo, name : String) -> String {
 }
 
 ///|
-/// `(commit, ref name)` for every entry of `packed-refs`.
+/// `(commit, ref name)` for every entry of `packed-refs`, peeled tags
+/// included: `^<commit>` belongs to the entry above it, which is how an
+/// annotated tag comes to name a commit without the tag object being read.
 fn Repo::packed_ref_entries(self : Repo) -> Array[(String, String)] {
   let entries : Array[(String, String)] = []
   let packed = read_text(join_path(self.common_dir, "packed-refs"))
+  let mut last = -1
   for line in packed.split("\n") {
-    let entry = strip_git_whitespace(line)
-    // `# pack-refs with: peeled fully-peeled` and `^<peeled>` lines carry no
-    // ref of their own.
-    if entry.is_empty() || entry.has_prefix("#") || entry.has_prefix("^") {
+    let entry = trim(line)
+    // `# pack-refs with: peeled fully-peeled` carries no ref of its own.
+    if entry.is_empty() || entry.has_prefix("#") {
+      continue
+    }
+    if entry.has_prefix("^") {
+      guard last >= 0 else { continue }
+      let (commit, name) = entries[last]
+      let _ = (commit, name)
+      entries[last] = (entry[1:].to_owned(), name)
       continue
     }
     match entry.rev_find(" ") {
-      Some(index) =>
+      Some(index) => {
         entries.push((entry[:index].to_owned(), entry[index + 1:].to_owned()))
+        last = entries.length() - 1
+      }
       None => ()
     }
   }
@@ -144,9 +183,6 @@ fn Repo::packed_ref_entries(self : Repo) -> Array[(String, String)] {
 ///|
 /// Every tag pointing at `commit`, sorted by name: two tags on one commit are
 /// equally exact, and the generated file may not shuffle between builds.
-///
-/// An annotated tag names a tag object rather than the commit, and peeling it
-/// means reading that object; such a tag is left out instead of guessed at.
 fn Repo::tags_at(self : Repo, commit : String) -> Array[String] {
   let names : Array[String] = []
   for name in self.list_refs("refs/tags") {
@@ -191,28 +227,29 @@ fn walk_refs(dir : String, prefix : String, names : Array[String]) -> Unit {
 }
 
 ///|
-/// The fields `HEAD` and the refs answer — which is everything except the ones
-/// that need a commit object, the index, or the commit graph.
-fn Head::to_git_info(
-  self : Head,
-  repo : Repo,
-  cwd : String,
-) -> @gitinfo.GitInfo {
+fn Head::to_repo_info(self : Head, repo : Repo) -> RepoInfo {
   let (branch, commit) = match self {
     Branch(name, commit) => (short_branch(name), commit)
     Detached(commit) => ("", commit)
   }
-  let tags = repo.tags_at(commit)
-  let tag = if tags.length() > 0 { tags[0] } else { "" }
-  let (commit_date, author, email) = read_commit_lines(cwd, commit)
+  let tag = match repo.tags_at(commit) {
+    [] => ""
+    tags => tags[0]
+  }
+  let commit_object = repo.read_commit(commit)
+  let (commit_date, author, email) = match commit_object {
+    Some(object) => (object.date, object.author, object.email)
+    None => ("", "", "")
+  }
+  let (ahead, behind) = match commit_object {
+    Some(object) => repo.tracking(branch, object)
+    None => (0, 0)
+  }
   {
     available: true,
+    locate: Ok,
     branch,
     tag,
-    // `describe --tags --always`: the exact tag, else `short_commit`. The
-    // `-N-g<sha>` form needs the tags reachable from `HEAD` and a count of
-    // commits in between, which is the moment this stops being "read a few
-    // files".
     describe: if !tag.is_empty() {
       tag
     } else {
@@ -223,35 +260,10 @@ fn Head::to_git_info(
     commit_date,
     author,
     email,
-    // Comparing the index against the work tree is a `stat` per file, and
-    // `generated.mbt` itself is committed: guessing here marks every build
-    // dirty, so the honest answer is "not checked".
-    dirty: false,
-    // The commit graph, for the same reason.
-    ahead: 0,
-    behind: 0,
+    dirty: repo.is_dirty(),
+    ahead,
+    behind,
   }
-}
-
-///|
-/// `(commit_date, author, email)`, from git when it is there.
-///
-/// The commit object is zlib, and inflating it is a dependency this generator
-/// does not take; `git log -1` is the one command left. `%x00` between fields
-/// because a US separator can appear in an author name and NUL cannot.
-///
-/// `None` from `spawn` is a machine without a shell — the fields stay empty
-/// rather than the build failing.
-fn read_commit_lines(cwd : String, commit : String) -> (String, String, String) {
-  let args = [
-    "--no-optional-locks", "-C", cwd, "log", "-1", "--format=%cI%x00%an%x00%ae",
-    commit,
-  ]
-  let raw = match spawn("git", args) {
-    Some((stdout, code)) => if code == "0" { stdout } else { "" }
-    None => ""
-  }
-  @gitinfo.parse_commit_lines(raw)
 }
 
 ///|
