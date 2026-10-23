@@ -23,15 +23,15 @@ pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo {
 pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
   {
     available: true,
-    branch: "fix/gen-defaults-and-docs",
+    branch: "auto/no-shell-git-8ad8",
     tag: "",
-    describe: "fabea13",
-    commit: "fabea13c3f8a4b9c951a2656a796378ee87b73aa",
-    short_commit: "fabea13",
-    commit_date: "2026-10-22T23:42:39+08:00",
+    describe: "257e4b4",
+    commit: "257e4b44dea62cd050b84731209dc16e773ad312",
+    short_commit: "257e4b4",
+    commit_date: "2026-10-23T08:44:09+08:00",
     author: "rzhangsan",
     email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
-    dirty: true,
+    dirty: false,
     ahead: 0,
     behind: 0,
   }

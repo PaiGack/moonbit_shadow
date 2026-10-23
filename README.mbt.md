@@ -70,12 +70,21 @@ options(
 
 ## 生成器跑在哪个后端
 
-**native**。prebuild 里那条命令是 `moon run --target native gen`，生成器直接
-用 libc 的 `popen` 去问 git，装什么运行时都无所谓——只要这台机器上有
-`/bin/sh`，以及（想拿到 git 信息时）`git`。
+**native**。prebuild 里那条命令是 `moon run --target native gen`，生成器不依赖
+任何运行时，也不依赖一个能用的 shell。
 
-没有 git 不要紧：生成器照常写出 `git_info().available = false`，构建不会因此
-失败，只在 stdout 上说一句。
+`.git` 里的东西是**直接读文件**的，就像 git 自己做的那样：`HEAD`、它指向的
+ref、`packed-refs`、`refs/tags/*`，以及 `.git` 是文件时（linked worktree、
+submodule）顺着 `gitdir:` / `commondir` 找过去。`branch`、`tag`、`describe`、
+`commit`、`short_commit` 都从这几份文件里来。
+
+剩下几项不是读文件能答的：`commit_date` / `author` / `email` 在 zlib 压过的
+commit object 里，`dirty` 要拿 `index` 和每个文件 `stat` 比对，`ahead/behind`
+要走提交图。前一项用 `git log -1` 补（拿不到就留空），后两项直接留空——宁可
+没有值，也不要一个偶尔错的版本号。
+
+没有 git、没有 shell 都不要紧：生成器照常写出 `git_info().available =
+false`，构建不会因此失败，只在 stdout 上说一句。
 
 那条命令没有参数要你按自己模块改写：`$input` 是 `moon` 展开的
 `../moon.mod`，模块名就从这份文件里读；生成的代码里那两个类型路径
@@ -84,7 +93,14 @@ options(
 
 `gen` 这个包同时给 `js` / `wasm-gc` 备了 shim（`js` 走 `process.binding`，
 `wasm-gc` 没有进程模型、直接降级），所以你 `override` 想换成别的后端也能跑，
-只是 `js` 那条路要机器上有 `node`。
+只是 `js` 那条路要机器上有 `node` 才拿得到 commit 的三行。
+
+`llvm` 后端在这里和 `native` 共用同一份实现（`popen` 走 libc），代码按
+`target="llvm"` 一并编；但它在 MoonBit 侧仍是 nightly 才有的实验后端，本仓库
+的 CI 只在 Linux 上验 `native`。Windows 上 `popen` 由 `ucrt` 提供（MSVC）或由
+MinGW 的 CRT 提供，**`.git` 那几项不经过它**，所以 `commit_date` / `author` /
+`email` 之外的部分在 MSVC 下同样有值；那三项若 `popen` 不可用就留空，不会让
+构建失败。
 
 ## 工作原理
 
