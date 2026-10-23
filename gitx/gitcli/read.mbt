@@ -1,11 +1,11 @@
 ///|
 /// The checkout at `cwd`, asked of `git` itself.
 ///
-/// The other half of `gitinfo`: that package opens `.git` and reads the files,
-/// this one runs the command. Neither is enough alone — a reader knows nothing
+/// The other half of `gitx/gitz/repo`: that package opens `.git` and reads the
+/// files, this one runs the command. Neither is enough alone — a reader knows nothing
 /// about packed objects, shallow clones or `GIT_DIR`, and a `git` that is not
 /// installed cannot be asked anything — so `gen` tries this first and keeps
-/// `gitinfo` for the machines where the command is missing.
+/// the file reader for the machines where the command is missing.
 ///
 /// Nothing here inspects the platform: whether a process can be started at all
 /// is answered by trying it. `None` means "no usable `git`", and every failure
@@ -22,7 +22,7 @@ pub async fn read_repo_info(cwd : String) -> @gitinfo.RepoInfo? {
   let commit = git(["rev-parse", "HEAD"], cwd) catch { _ => return None }
   guard is_hex(commit) else { return None }
   // A bare repository has no work tree, so there is no "dirty" to report and
-  // no branch to be on. `gitinfo` would say the same: the index comparison
+  // no branch to be on. `gitx/gitz/repo` would say the same: the index comparison
   // needs a work tree.
   let is_bare = git(["rev-parse", "--is-bare-repository"], cwd) catch {
     _ => ""
@@ -47,7 +47,7 @@ pub async fn read_repo_info(cwd : String) -> @gitinfo.RepoInfo? {
     },
   )
   // `git describe` fails on a repository with no commit at all and shortens a
-  // shallow one. Both are answers, so the fallback is the commit id `gitinfo`
+  // shallow one. Both are answers, so the fallback is the commit id the file reader
   // would also settle on.
   let described = git(["describe", "--tags", "--always"], cwd) catch { _ => "" }
   let short_commit = git(["rev-parse", "--short", "HEAD"], cwd) catch {
@@ -55,7 +55,7 @@ pub async fn read_repo_info(cwd : String) -> @gitinfo.RepoInfo? {
   }
   let info : @gitinfo.RepoInfo = {
     available: true,
-    locate: @gitinfo.Ok,
+    locate: @gitinfo.RepoLocate::Ok,
     // Fails on a detached HEAD, which is exactly when there is no branch.
     branch: if bare {
       ""

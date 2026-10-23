@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "PaiGack/moon_shadow/gitx/gitz/repo"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn discover(String) -> Repo?
+
+pub fn join_path(String, String) -> String
+
+pub fn normalize(String) -> String
+
+pub fn read_checkout(String) -> Checkout
+
+pub fn read_text(String) -> String
+
+pub fn trim(StringView) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct Checkout {
+  locate : RepoLocate
+  repo : RepoInfo?
+}
+pub fn Checkout::to_repo_info(Self) -> RepoInfo
+
+pub(all) struct Commit {
+  date : String
+  author : String
+  email : String
+  first_parent : String
+}
+
+pub(all) struct Repo {
+  common_dir : String
+  git_dir : String
+  work_dir : String
+}
+pub fn Repo::is_dirty(Self) -> Bool
+pub fn Repo::read_commit(Self, String) -> Commit?
+pub fn Repo::read_ref(Self, String, Int32) -> String
+
+pub(all) struct RepoInfo {
+  available : Bool
+  locate : RepoLocate
+  branch : String
+  tag : String
+  describe : String
+  commit : String
+  short_commit : String
+  commit_date : String
+  author : String
+  email : String
+  dirty : Bool
+  ahead : Int32
+  behind : Int32
+} derive(Eq, @debug.Debug)
+pub fn RepoInfo::empty(locate? : RepoLocate) -> Self
+#deprecated
+pub fn RepoInfo::equal(Self, Self) -> Bool
+#deprecated
+pub fn RepoInfo::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn RepoInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) enum RepoLocate {
+  Ok
+  Missing
+  Unreadable
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn RepoLocate::equal(Self, Self) -> Bool
+#deprecated
+pub fn RepoLocate::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn RepoLocate::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

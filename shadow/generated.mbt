@@ -24,12 +24,12 @@ pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo {
 pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
   {
     available: true,
-    branch: "auto/gitcli-fallback-d412",
+    branch: "main",
     tag: "",
-    describe: "0ec21e2",
-    commit: "0ec21e204d0cde7de58047dacd0c5539a1107f17",
-    short_commit: "0ec21e2",
-    commit_date: "2026-10-23T17:41:01+08:00",
+    describe: "fa136a9",
+    commit: "fa136a9c314432fc15890165be588f1148acea35",
+    short_commit: "fa136a9",
+    commit_date: "2026-10-23T18:28:07+08:00",
     author: "rzhangsan",
     email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
     dirty: true,

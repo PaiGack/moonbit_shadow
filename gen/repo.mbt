@@ -4,7 +4,8 @@
 ///
 /// The generator runs on the build machine, which is usually the one place a
 /// `git` executable is guaranteed — and a `git` that answers knows about packed
-/// objects, shallow clones and `GIT_DIR`, none of which `gitinfo` reads. But
+/// objects, shallow clones and `GIT_DIR`, none of which `gitx/gitz/repo` reads.
+/// But
 /// "usually" is not "always" (a container built from a source tarball, a CI step
 /// that copies the work tree and drops the command), so the second half stays.
 ///
@@ -21,15 +22,15 @@ async fn collect_git_info(cwd : String) -> @gitinfo.GitInfo {
     }
   }
   match info.locate {
-    @gitinfo.Ok => ()
-    @gitinfo.Missing =>
+    @gitinfo.RepoLocate::Ok => ()
+    @gitinfo.RepoLocate::Missing =>
       println(
         "moon_shadow: no git checkout at \{cwd}, baking in git_info().available = false",
       )
-    @gitinfo.Unreadable =>
+    @gitinfo.RepoLocate::Unreadable =>
       println(
         "moon_shadow: \{cwd}/.git names a directory that is not there, baking in git_info().available = false",
       )
   }
-  info.to_git_info()
+  @gitinfo.to_git_info(info)
 }

@@ -5,7 +5,7 @@
 /// Objects are zlib streams, so reading one means inflating it. Doing it here
 /// rather than shelling out to `git log -1` is what keeps the generator free of
 /// a process: same files, same answers, no shell to find.
-priv struct Commit {
+pub(all) struct Commit {
   /// `2026-10-22T09:14:41+08:00`, as written in the object.
   date : String
   /// The author's name, not the committer's: `git log -1 --format=%an`.
@@ -23,7 +23,7 @@ priv struct Commit {
 /// read: packs are the one place where "read the files yourself" stops being
 /// worth the code, so a freshly `git gc`ed clone degrades to an empty commit
 /// date instead of a wrong one.
-fn Repo::read_commit(self : Repo, id : String) -> Commit? {
+pub fn Repo::read_commit(self : Repo, id : String) -> Commit? {
   guard id.length() >= 40 && is_hex(id[:40]) else { return None }
   let hex = id[:40].to_owned()
   let path = join_path(
@@ -31,7 +31,7 @@ fn Repo::read_commit(self : Repo, id : String) -> Commit? {
     "objects/" + hex[:2].to_owned() + "/" + hex[2:].to_owned(),
   )
   let raw = @fs.read_file_to_bytes(path) catch { _ => return None }
-  let object = match inflate(raw, max_size=1 << 20) {
+  let object = match @core.inflate(raw, max_size=1 << 20) {
     Some(object) => object
     None => return None
   }

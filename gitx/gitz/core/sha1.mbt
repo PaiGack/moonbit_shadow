@@ -5,14 +5,14 @@
 /// index stores — which is what makes "has this file changed" answerable by
 /// reading it, without trusting a timestamp. SHA-1 is here rather than in a
 /// dependency because it is forty lines and every target can run it.
-fn blob_id(content : Bytes) -> String {
+pub fn blob_id(content : Bytes) -> String {
   let header = "blob " + content.length().to_string() + "\u{0}"
   let header_bytes = @utf8.encode(header)
   sha1_hex(header_bytes + content)
 }
 
 ///|
-fn sha1_hex(data : Bytes) -> String {
+pub fn sha1_hex(data : Bytes) -> String {
   let state : Array[Int32] = [
     0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0,
   ]
@@ -86,4 +86,15 @@ fn sha1_hex(data : Bytes) -> String {
     }
   }
   out.to_string()
+}
+
+///|
+/// `0`..`15` -> `'0'`..`'f'`, the form git prints object ids in.
+pub fn hex_digit(value : Int32) -> Char {
+  let code = if value < 10 {
+    '0'.to_int() + value
+  } else {
+    'a'.to_int() + value - 10
+  }
+  code.unsafe_to_char()
 }

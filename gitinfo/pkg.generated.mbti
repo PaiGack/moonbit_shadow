@@ -2,11 +2,14 @@
 package "PaiGack/moon_shadow/gitinfo"
 
 import {
+  "PaiGack/moon_shadow/gitx/gitz/repo",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn read_repo_info(String) -> RepoInfo
+pub fn read_repo_info(String) -> @repo.RepoInfo
+
+pub fn to_git_info(@repo.RepoInfo) -> GitInfo
 
 // Errors
 
@@ -37,42 +40,11 @@ pub fn GitInfo::not_equal(Self, Self) -> Bool
 pub fn GitInfo::to_repr(Self) -> @debug.Repr
 pub fn GitInfo::to_version_string(Self) -> String
 
-pub(all) struct RepoInfo {
-  available : Bool
-  locate : RepoLocate
-  branch : String
-  tag : String
-  describe : String
-  commit : String
-  short_commit : String
-  commit_date : String
-  author : String
-  email : String
-  dirty : Bool
-  ahead : Int32
-  behind : Int32
-} derive(Eq, @debug.Debug)
-pub fn RepoInfo::empty() -> Self
-#deprecated
-pub fn RepoInfo::equal(Self, Self) -> Bool
-#deprecated
-pub fn RepoInfo::not_equal(Self, Self) -> Bool
-pub fn RepoInfo::to_git_info(Self) -> GitInfo
-#deprecated
-pub fn RepoInfo::to_repr(Self) -> @debug.Repr
-
-pub(all) enum RepoLocate {
-  Ok
-  Missing
-  Unreadable
-} derive(Eq, @debug.Debug)
-#deprecated
-pub fn RepoLocate::equal(Self, Self) -> Bool
-#deprecated
-pub fn RepoLocate::not_equal(Self, Self) -> Bool
-#deprecated
-pub fn RepoLocate::to_repr(Self) -> @debug.Repr
-
 // Type aliases
+pub using @repo {type Checkout}
+
+pub using @repo {type RepoInfo}
+
+pub using @repo {type RepoLocate}
 
 // Traits

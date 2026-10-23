@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "PaiGack/moon_shadow/gitx/gitz/core"
+
+// Values
+pub fn blob_id(Bytes) -> String
+
+pub fn hex_digit(Int32) -> Char
+
+pub fn inflate(Bytes, max_size~ : Int32) -> Bytes?
+
+pub fn sha1_hex(Bytes) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
