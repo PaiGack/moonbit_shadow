@@ -1,0 +1,7 @@
+import {
+  "PaiGack/moon_shadow/gitx/gitz/core",
+  "moonbitlang/x/fs",
+  "moonbitlang/core/encoding/utf8",
+}
+
+pkgtype(kind: "library")

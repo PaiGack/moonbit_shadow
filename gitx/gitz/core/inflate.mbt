@@ -6,7 +6,7 @@
 /// spawning `git` means inflating it. The subset git actually produces is
 /// small: one zlib stream, stored or Huffman-coded blocks, no preset
 /// dictionary. Anything else yields `None` rather than a wrong answer.
-fn inflate(data : Bytes, max_size~ : Int32) -> Bytes? {
+pub fn inflate(data : Bytes, max_size~ : Int32) -> Bytes? {
   // `CMF`/`FLG`: deflate, a window of at most 32K, and a check over both bytes.
   guard data.length() >= 6 else { return None }
   guard (data[0].to_int() & 0x0F) == 8 else { return None }

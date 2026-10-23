@@ -1,7 +1,10 @@
 ///|
-/// Where `.git` is and what `HEAD` says. Nothing here is a value the artifact
-/// keeps; it exists so the reading code stays short.
-priv struct Repo {
+/// Where `.git` is.
+///
+/// Public because reading a checkout is this package's job: a caller that only
+/// wants a ref or a commit object gets the layout from `discover` and asks,
+/// instead of re-deriving the three directories itself.
+pub(all) struct Repo {
   /// `objects/`, `refs/` and `packed-refs` live here.
   common_dir : String
   /// `HEAD` lives here; differs from `common_dir` in a linked worktree.
@@ -30,19 +33,40 @@ priv enum Head {
 ///
 /// `locate` comes back beside the value because it is the one thing worth
 /// printing: "no repository" and "a `.git` that points nowhere" are different
-/// mistakes, and `GitInfo` is baked into the artifact, not logged.
-pub fn read_repo_info(cwd : String) -> RepoInfo {
+/// mistakes, and a version string is baked into the artifact, not logged.
+pub fn read_checkout(cwd : String) -> Checkout {
   let repo = match discover(cwd) {
     Some(repo) => repo
-    None => return RepoInfo::empty()
+    None => return { locate: Missing, repo: None, }
   }
   // A `HEAD` that names nothing is a half-written clone. Its refs are stale by
   // definition, and a stale version number is worse than none.
   let head = match repo.read_head() {
     Some(head) => head
-    None => return { ..RepoInfo::empty(), locate: Unreadable, }
+    None => return { locate: Unreadable, repo: None, }
   }
-  head.to_repo_info(repo)
+  { locate: Ok, repo: Some(Head::to_repo_info(head, repo)), }
+}
+
+///|
+/// A checkout, or the reason there is none.
+///
+/// The reader does not build `GitInfo`: `gitinfo` imports this package for
+/// `RepoInfo`, so the other direction would be an import loop. What comes back
+/// is what it read; narrowing that to `GitInfo`, and trimming the line endings
+/// git leaves in ref files, stays in `gitinfo`.
+pub(all) struct Checkout {
+  locate : RepoLocate
+  /// `None` exactly when `locate` is not `Ok`.
+  repo : RepoInfo?
+}
+
+///|
+pub fn Checkout::to_repo_info(self : Checkout) -> RepoInfo {
+  match self.repo {
+    Some(info) => info
+    None => RepoInfo::empty(locate=self.locate)
+  }
 }
 
 ///|
@@ -52,7 +76,7 @@ pub fn read_repo_info(cwd : String) -> RepoInfo {
 /// file holding `gitdir: <path>` — a linked worktree (`<common>/.git/worktrees/
 /// <name>`, which has a `commondir` file pointing back) or a submodule
 /// (`.git/modules/<name>`, which has none).
-fn discover(cwd : String) -> Repo? {
+pub fn discover(cwd : String) -> Repo? {
   let mut dir = normalize(cwd)
   while true {
     let candidate = join_path(dir, ".git")
@@ -123,7 +147,7 @@ fn Repo::resolve_ref_text(self : Repo, text : String, depth~ : Int32) -> Head? {
 /// A ref that exists in both places is the loose one: `git pack-refs` deletes
 /// the loose file when it packs, so the two agree, and an edit leaves the newer
 /// value loose.
-fn Repo::read_ref(self : Repo, name : String, depth : Int32) -> String {
+pub fn Repo::read_ref(self : Repo, name : String, depth : Int32) -> String {
   let loose = read_text(join_path(self.common_dir, name))
   if !loose.is_empty() {
     // A ref file never holds `ref:`, but a broken one holding it is better
@@ -295,4 +319,77 @@ fn is_hex(text : StringView) -> Bool {
     guard ok else { return false }
   }
   true
+}
+
+///|
+/// A checkout read straight out of `.git`, before it is narrowed to a
+/// `GitInfo`.
+///
+/// Everything here is a file's contents, produced by `gen` and understood by
+/// this package: the generator knows where a ref lives, this side knows what a
+/// ref means. `locate` matters because `.git` is a *file* in a worktree and in
+/// a submodule, and a reader that walks into one and gives up looks exactly
+/// like "no repository here".
+pub(all) struct RepoInfo {
+  available : Bool
+  locate : RepoLocate
+  branch : String
+  tag : String
+  describe : String
+  commit : String
+  short_commit : String
+  commit_date : String
+  author : String
+  email : String
+  dirty : Bool
+  ahead : Int32
+  behind : Int32
+} derive(Eq, Debug)
+
+///|
+#deprecated
+pub extend RepoInfo with Eq::{not_equal, equal}
+
+///|
+#deprecated
+pub extend RepoInfo with Debug::{to_repr}
+
+///|
+/// What the reader did with `.git`.
+pub(all) enum RepoLocate {
+  /// Found it, and it is a work tree.
+  Ok
+  /// No `.git` on the way up.
+  Missing
+  /// `.git` is a file naming a directory that is not there — a worktree left
+  /// behind by a checkout that has been pruned.
+  Unreadable
+} derive(Eq, Debug)
+
+///|
+#deprecated
+pub extend RepoLocate with Eq::{not_equal, equal}
+
+///|
+#deprecated
+pub extend RepoLocate with Debug::{to_repr}
+
+///|
+/// The "nothing here" value, with the reason it is empty.
+pub fn RepoInfo::empty(locate~ : RepoLocate = Missing) -> RepoInfo {
+  {
+    available: false,
+    locate,
+    branch: "",
+    tag: "",
+    describe: "",
+    commit: "",
+    short_commit: "",
+    commit_date: "",
+    author: "",
+    email: "",
+    dirty: false,
+    ahead: 0,
+    behind: 0,
+  }
 }

@@ -12,7 +12,7 @@
 /// The cost is hashing every tracked file. A module is a few hundred files and
 /// the generator runs once per `moon.mod` change, so that is cheaper than the
 /// `stat`-based shortcut plus the `mtime` races it introduces.
-fn Repo::is_dirty(self : Repo) -> Bool {
+pub fn Repo::is_dirty(self : Repo) -> Bool {
   let index = match read_index(join_path(self.git_dir, "index")) {
     Some(entries) => entries
     None => return false
@@ -29,7 +29,7 @@ fn Repo::is_dirty(self : Repo) -> Bool {
     let path = join_path(self.work_dir, entry.path)
     // A deleted file is a change; so is one whose content no longer matches.
     let content = @fs.read_file_to_bytes(path) catch { _ => return true }
-    if blob_id(content) != entry.blob {
+    if @core.blob_id(content) != entry.blob {
       return true
     }
   }
@@ -113,20 +113,10 @@ fn hex_of(bytes : Bytes, slide~ : Int32, length~ : Int32) -> String {
   let out = StringBuilder()
   for i in 0..<length {
     let byte = bytes[slide + i].to_int()
-    out.write_char(hex_digit((byte >> 4) & 0xF))
-    out.write_char(hex_digit(byte & 0xF))
+    out.write_char(@core.hex_digit((byte >> 4) & 0xF))
+    out.write_char(@core.hex_digit(byte & 0xF))
   }
   out.to_string()
-}
-
-///|
-fn hex_digit(value : Int32) -> Char {
-  let code = if value < 10 {
-    '0'.to_int() + value
-  } else {
-    'a'.to_int() + value - 10
-  }
-  code.unsafe_to_char()
 }
 
 ///|

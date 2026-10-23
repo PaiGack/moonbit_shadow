@@ -49,7 +49,7 @@ test "inflate reads a zlib stream" {
   // The zlib of `blob 6\x00hello\n`, which is what git writes for
   // `printf 'hello\n' | git hash-object -w --stdin`.
   let packed = b"\x78\x9c\x4b\xca\xc9\x4f\x52\x30\x63\xc8\x48\xcd\xc9\xc9\xe7\x02\x00\x1d\xc5\x04\x14"
-  let plain = inflate(packed, max_size=1024).unwrap()
+  let plain = @core.inflate(packed, max_size=1024).unwrap()
   assert_eq(@utf8.decode_lossy(plain), "blob 6\u{0}hello\n")
 }
 
@@ -57,20 +57,23 @@ test "inflate reads a zlib stream" {
 test "inflate keeps what the length says and stops after it" {
   let packed = b"\x78\x9c\x4b\xca\xc9\x4f\x52\x30\x63\xc8\x48\xcd\xc9\xc9\xe7\x02\x00\x1d\xc5\x04\x14"
   // A cap below the real size is a stream this reader rejects, not a truncation.
-  assert_eq(inflate(packed, max_size=4), None)
+  assert_eq(@core.inflate(packed, max_size=4), None)
 }
 
 ///|
 test "a blob id is the hash git stores" {
   // `printf 'hello\n' | git hash-object --stdin`
-  assert_eq(blob_id(b"hello\n"), "ce013625030ba8dba906f756967f9e9ca394464a")
+  assert_eq(
+    @core.blob_id(b"hello\n"),
+    "ce013625030ba8dba906f756967f9e9ca394464a",
+  )
 }
 
 ///|
 test "an empty file hashes as git does" {
   // `git hash-object -w --stdin </dev/null`: the empty *blob*, not the empty
   // string's hash.
-  assert_eq(blob_id(b""), "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391")
+  assert_eq(@core.blob_id(b""), "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391")
 }
 
 ///|

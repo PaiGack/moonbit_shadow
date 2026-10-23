@@ -19,7 +19,7 @@ fn sample() -> @gitinfo.RepoInfo {
 
 ///|
 test "a read repository becomes fields" {
-  let info = sample().to_git_info()
+  let info = @gitinfo.to_git_info(sample())
   assert_eq(info.available, true)
   assert_eq(info.branch, "main")
   assert_eq(info.tag, "v0.1.1")
@@ -40,7 +40,7 @@ test "ref files lose their line ending" {
     branch: "main\r\n",
     commit: "abc1234def5678\n",
   }
-  let info = raw.to_git_info()
+  let info = @gitinfo.to_git_info(raw)
   assert_eq(info.branch, "main")
   assert_eq(info.commit, "abc1234def5678")
 }
@@ -52,7 +52,7 @@ test "a missing repository clears every field" {
     available: false,
     locate: Missing,
   }
-  let info = raw.to_git_info()
+  let info = @gitinfo.to_git_info(raw)
   assert_false(info.available)
   assert_false(info.dirty)
   assert_eq((info.ahead, info.behind), (0, 0))
@@ -64,7 +64,12 @@ test "a missing repository clears every field" {
 test "a half-written .git is not a repository" {
   // `.git` was found, but `HEAD` names nothing: the refs above it are stale,
   // and a stale version number is worse than none.
-  let info = { ..sample(), available: false, locate: Unreadable, }.to_git_info()
+  let raw : @gitinfo.RepoInfo = {
+    ..sample(),
+    available: false,
+    locate: Unreadable,
+  }
+  let info = @gitinfo.to_git_info(raw)
   assert_false(info.available)
   assert_eq(info.to_version_string(), "unavailable")
 }
@@ -77,7 +82,7 @@ test "detached head and missing tag stay empty" {
     tag: "",
     describe: "",
   }
-  let info = raw.to_git_info()
+  let info = @gitinfo.to_git_info(raw)
   assert_eq(info.branch, "")
   assert_eq(info.tag, "")
   assert_eq(info.describe, "")
