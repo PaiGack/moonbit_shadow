@@ -81,11 +81,13 @@ println(build.target)                       // "wasm-gc" / "js" / "native"
 
 ```
 mooninfo/            ModuleInfo / Dependency、moon_config 解析、moon.mod 侧渲染
-gitinfo/             GitInfo 类型，以及真正读 .git 的那一层：
+gitinfo/             GitInfo 类型，以及直接读 .git 的那一层（不依赖 git 命令）：
                      仓库发现、refs、inflate、commit 对象、index、sha-1
 buildinfo/           BuildInfo / ToolchainInfo 类型，profile 与 target 的
                      targets 选择，以及虚拟包实现文件的渲染
-gen/                 生成器可执行文件：读 moon.mod，调 gitinfo，写出实现文件
+gitcli/              另一半：调用 git 命令采集同一份仓库信息
+gen/                 生成器可执行文件：读 moon.mod，先问 gitcli，失败回退 gitinfo，
+                     写出实现文件
 shadow/              虚拟包及其生成的默认实现、gen 规则
 moon_shadow.mbt      公共 API：current()、git()、build()
 moon_shadow_example/ 一个使用者模块，即上述配置的完整示例
@@ -113,6 +115,7 @@ pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo
 实现文件的是一个 `BuildInfo`：
 
 ```moonbit nocheck
+///|
 pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo {
   @PaiGack/moon_shadow/buildinfo.BuildInfo::from_toolchain({
     moon_version: "0.1.20261020",
@@ -134,7 +137,14 @@ pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo {
 
 - `moon.mod` 的 DSL 由 [`moonbitlang/moon_config`](https://mooncakes.io/docs/moonbitlang/moon_config)
 解析
-- `git` 相关信息由 [`gitinfo`](./gitinfo/) 负责直接读取 `.git` 中的信息解析  
+- `git` 相关信息有两条采集路径，`gen` 依次尝试：
+  1. [`gitcli`](./gitcli/)：直接跑 `git`，交给 git 自己回答。能处理打包对象、
+     浅克隆、`GIT_DIR` 等你不想自己实现的情况。
+  2. [`gitinfo`](./gitinfo/)：不启动任何进程，直接读 `.git` 里的
+     `HEAD`、refs、commit 对象和 index。git 命令不可用时才走这条。
+
+  生成器不判断平台：能不能启动进程，试一次就知道了。`git` 调用失败（没装、
+  不在仓库里、退出码非 0）就回退，两条路的产出是同一个 `GitInfo` 类型。
 
 ## 需要了解的行为
 
