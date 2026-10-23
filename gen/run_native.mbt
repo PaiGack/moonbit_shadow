@@ -22,12 +22,13 @@ extern "C" fn c_pclose(stream : Handle) -> Int32 = "pclose"
 /// NULL as it arrives from C. The comparison goes through the same opaque type
 /// so no pointer is ever reinterpreted as an integer.
 #cfg(any(target="native", target="llvm"))
+#borrow(stream)
 extern "C" fn c_is_null(stream : Handle) -> Int32 = "moonbitlang_x_fs_is_null"
 
 ///|
 /// `fread` rather than `fgets`: it reports how many bytes it actually read, so
 /// the buffer never has to be scanned for a terminator, and binary-safe output
-/// survives. `fgets` also returns a `char *` this side would have to reinterpret.
+/// survives.
 #cfg(any(target="native", target="llvm"))
 #borrow(buffer, stream)
 extern "C" fn c_fread(
@@ -38,29 +39,24 @@ extern "C" fn c_fread(
 ) -> Int32 = "fread"
 
 ///|
+/// The native half of the one call in the generator that still spawns a
+/// process: `git log -1`, for the commit date, author and email.
+///
+/// Everything else is read out of `.git` in-process (`git_refs.mbt`), because
+/// this generator has to run wherever `moon` runs. The commit object is zlib,
+/// though, and inflating it is a dependency; `git` is the smaller ask. When it
+/// is not there — a machine without a shell, an MSVC host — `popen` is not
+/// either, and three fields stay empty instead of the build failing.
 #cfg(any(target="native", target="llvm"))
-/// Spawn `program args...` through libc and return `[stdout, exit code]`, or
-/// `None` when the shell could not be started.
-///
-/// Native is the one target that can do this honestly: `popen` waits for the
-/// process to exit before `pclose` reports its status, so the whole thing stays
-/// synchronous — and it needs nothing installed beyond a shell, the same one
-/// `system()` would use. No `node`.
-///
-/// The command is built without quoting and without a `cd` prefix: `popen` hands
-/// it to `/bin/sh`, every argument here is either a literal or a path the build
-/// system wrote, and `git -C` does the directory part anyway.
-fn run_via_popen(program : String, args : Array[String]) -> (String, String)? {
+fn spawn(program : String, args : Array[String]) -> (String, String)? {
   let builder = StringBuilder()
   builder.write_string(program)
   for arg in args {
     builder.write_char(' ')
     builder.write_string(arg)
   }
-  // `2>/dev/null`: git prints "fatal: No names found" for an untagged repo and
-  // a complaint for a missing upstream, both of which are ordinary answers
-  // here — the field simply stays empty. Left alone, the shell would copy them
-  // straight into the build log on every build.
+  // `2>/dev/null`: git prints "fatal: your current branch has no commits" for
+  // an empty repository, which is an ordinary answer here.
   let stream = c_popen(c_string(builder.to_string() + " 2>/dev/null"), b"r\x00")
   if c_is_null(stream) != 0 {
     return None

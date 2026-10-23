@@ -53,8 +53,8 @@ fn main {
   // cwd is the consumer's module directory, so `rev-parse` walks up to *their*
   // repository root — exactly whose git state we want to report.
   let cwd = dirname(input)
-  let git_info = collect_git_info(cwd)
-  print_unavailable(cwd, git_info)
+  let (git_info, locate) = collect_git_info(cwd)
+  print_locate(cwd, locate)
   let body = render(
     git_info,
     @mooninfo.render_module_info(parsed.info, pkg_path=meta_path),
@@ -66,12 +66,18 @@ fn main {
 }
 
 ///|
-/// Say why `git_info()` carries nothing. A build without git still has to
-/// succeed, and silence would leave the empty fields unexplained.
-fn print_unavailable(cwd : String, info : @gitinfo.GitInfo) -> Unit {
-  if !info.available {
-    println(
-      "moon_shadow: no git checkout at \{cwd}, baking in git_info().available = false",
-    )
+/// Say why `git_info()` carries nothing. A build outside a repository still has
+/// to succeed, and silence would leave the empty fields unexplained.
+fn print_locate(cwd : String, locate : @gitinfo.RepoLocate) -> Unit {
+  match locate {
+    @gitinfo.Ok => ()
+    @gitinfo.Missing =>
+      println(
+        "moon_shadow: no git checkout at \{cwd}, baking in git_info().available = false",
+      )
+    @gitinfo.Unreadable =>
+      println(
+        "moon_shadow: \{cwd}/.git names a directory that is not there, baking in git_info().available = false",
+      )
   }
 }

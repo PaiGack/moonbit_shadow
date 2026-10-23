@@ -9,23 +9,26 @@ pub(all) struct GitInfo {
   /// `false` when the build happened outside a git repository, or without
   /// `git` installed. Every other field is then empty / zero.
   available : Bool
-  /// `symbolic-ref --short HEAD`; empty on a detached HEAD.
+  /// The short branch name; empty on a detached HEAD.
   branch : String
-  /// `describe --tags --exact-match`; empty when HEAD is not a tag.
+  /// The tag pointing at HEAD, if any.
   tag : String
-  /// `describe --tags --always`, a stable name for any commit.
+  /// The tag above, else `short_commit` — `describe --tags --always`.
   describe : String
   commit : String
   short_commit : String
-  /// ISO 8601, in the committer's timezone.
+  /// Read from the commit object, which this package does not inflate: empty
+  /// unless the generator was handed the value from somewhere else.
   commit_date : String
+  /// Same as `commit_date`.
   author : String
+  /// Same as `commit_date`.
   email : String
-  /// Tracked files with uncommitted changes. Untracked files do not count:
-  /// `generated.mbt` is committed, so counting them would report every build
-  /// as dirty.
+  /// Tracked files with uncommitted changes. Comparing the index against the
+  /// work tree is a `stat` per file, so this is `false` rather than guessed.
   dirty : Bool
-  /// Commits ahead of / behind the upstream branch; both 0 without one.
+  /// Commits ahead of / behind the upstream branch; 0 without one, and 0 when
+  /// the commit graph was not walked.
   ahead : Int32
   behind : Int32
 } derive(Eq, Debug)

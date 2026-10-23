@@ -1,58 +1,77 @@
 ///|
-fn sample() -> @gitinfo.RawGitInfo {
+fn sample() -> @gitinfo.RepoInfo {
   {
-    branch: "main\n",
-    tag: "",
-    describe: "v0.1.1-3-gabc1234\n",
-    commit: "abc1234def5678\n",
-    short_commit: "abc1234\n",
-    commit_date: "2026-10-22T09:14:41+00:00\n",
-    author: "Pai2s\n",
-    email: "pai2s@example.com\n",
-    status: "",
-    upstream_count: "2\t5\n",
+    available: true,
+    locate: Ok,
+    branch: "main",
+    tag: "v0.1.1",
+    describe: "v0.1.1",
+    commit: "abc1234def5678",
+    short_commit: "abc1234",
+    commit_date: "2026-10-22T09:14:41+00:00",
+    author: "Pai2s",
+    email: "pai2s@example.com",
+    dirty: true,
+    ahead: 2,
+    behind: 5,
   }
 }
 
 ///|
-test "raw output becomes fields" {
+test "a read repository becomes fields" {
   let info = sample().to_git_info()
   assert_eq(info.available, true)
   assert_eq(info.branch, "main")
-  assert_eq(info.tag, "")
-  assert_eq(info.describe, "v0.1.1-3-gabc1234")
+  assert_eq(info.tag, "v0.1.1")
+  assert_eq(info.describe, "v0.1.1")
   assert_eq(info.commit, "abc1234def5678")
   assert_eq(info.short_commit, "abc1234")
   assert_eq(info.commit_date, "2026-10-22T09:14:41+00:00")
   assert_eq(info.author, "Pai2s")
   assert_eq(info.email, "pai2s@example.com")
-  assert_eq(info.dirty, false)
+  assert_eq(info.dirty, true)
   assert_eq((info.ahead, info.behind), (2, 5))
 }
 
 ///|
-test "dirty follows status output" {
-  let raw : @gitinfo.RawGitInfo = {
+test "ref files lose their line ending" {
+  let raw : @gitinfo.RepoInfo = {
     ..sample(),
-    status: " M shadow/generated.mbt\n",
+    branch: "main\r\n",
+    commit: "abc1234def5678\n",
   }
-  assert_true(raw.to_git_info().dirty)
-  let untracked_only : @gitinfo.RawGitInfo = { ..sample(), status: "  \n", }
-  assert_false(untracked_only.to_git_info().dirty)
+  let info = raw.to_git_info()
+  assert_eq(info.branch, "main")
+  assert_eq(info.commit, "abc1234def5678")
 }
 
 ///|
-test "no upstream means zero ahead and behind" {
-  let raw : @gitinfo.RawGitInfo = { ..sample(), upstream_count: "", }
+test "a missing repository clears every field" {
+  let raw : @gitinfo.RepoInfo = {
+    ..sample(),
+    available: false,
+    locate: Missing,
+  }
   let info = raw.to_git_info()
+  assert_false(info.available)
+  assert_false(info.dirty)
   assert_eq((info.ahead, info.behind), (0, 0))
-  let garbage : @gitinfo.RawGitInfo = { ..sample(), upstream_count: "oops", }
-  assert_eq((garbage.to_git_info().ahead, garbage.to_git_info().behind), (0, 0))
+  // The cause survives: it is what the generator prints.
+  assert_eq(raw.locate, Missing)
+}
+
+///|
+test "a half-written .git is not a repository" {
+  // `.git` was found, but `HEAD` names nothing: the refs above it are stale,
+  // and a stale version number is worse than none.
+  let info = { ..sample(), available: false, locate: Unreadable, }.to_git_info()
+  assert_false(info.available)
+  assert_eq(info.to_version_string(), "unavailable")
 }
 
 ///|
 test "detached head and missing tag stay empty" {
-  let raw : @gitinfo.RawGitInfo = {
+  let raw : @gitinfo.RepoInfo = {
     ..sample(),
     branch: "",
     tag: "",
@@ -61,7 +80,23 @@ test "detached head and missing tag stay empty" {
   let info = raw.to_git_info()
   assert_eq(info.branch, "")
   assert_eq(info.tag, "")
-  assert_eq(info.describe, "abc1234")
+  assert_eq(info.describe, "")
+}
+
+///|
+test "commit lines split on NUL" {
+  let (date, author, email) = @gitinfo.parse_commit_lines(
+    "2026-10-22T09:14:41+00:00\u{0}Pai2s\u{0}pai2s@example.com\n",
+  )
+  assert_eq(date, "2026-10-22T09:14:41+00:00")
+  assert_eq(author, "Pai2s")
+  assert_eq(email, "pai2s@example.com")
+}
+
+///|
+test "a commit line that is not three fields answers nothing" {
+  assert_eq(@gitinfo.parse_commit_lines(""), ("", "", ""))
+  assert_eq(@gitinfo.parse_commit_lines("only\u{0}two"), ("", "", ""))
 }
 
 ///|

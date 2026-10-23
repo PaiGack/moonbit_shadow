@@ -1,5 +1,1 @@
-import {
-  "moonbitlang/core/string",
-}
-
 pkgtype(kind: "library")
