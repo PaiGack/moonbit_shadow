@@ -3,6 +3,7 @@ package "PaiGack/moon_shadow/shadow"
 import {
   "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
+  "PaiGack/moon_shadow/buildinfo",
 }
 
 // Values
@@ -10,4 +11,4 @@ pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo
 
 pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo
 
-pub fn toolchain_versions() -> (String, String)
+pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo

@@ -3,12 +3,12 @@
 pub fn module_info() -> @PaiGack/moon_shadow/mooninfo.ModuleInfo {
   {
     name: "PaiGack/moon_shadow",
-    version: "0.2.3",
+    version: "0.3.0",
     description: "Read a MoonBit module's own moon.mod and git metadata at runtime, baked in at build time.",
     license: "Apache-2.0",
     repository: "https://github.com/PaiGack/moonbit_shadow",
     readme: "README.mbt.md",
-    keywords: ["shadow", "build-info", "metadata"],
+    keywords: ["shadow", "build-info", "metadata", "git-info"],
     preferred_target: "wasm-gc",
     supported_targets: [],
     deps: [
@@ -26,12 +26,12 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
     available: true,
     branch: "main",
     tag: "",
-    describe: "3d11c12",
-    commit: "3d11c12bb76b6129eff5cdf37ad367c06183382e",
-    short_commit: "3d11c12",
-    commit_date: "",
-    author: "",
-    email: "",
+    describe: "6a42542",
+    commit: "6a42542c0a9432eef9080436203144f42c1b3475",
+    short_commit: "6a42542",
+    commit_date: "2026-10-23T16:30:59+08:00",
+    author: "rzhangsan",
+    email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
     dirty: true,
     ahead: 0,
     behind: 0,
@@ -39,7 +39,11 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
 }
 
 ///|
-/// Toolchain versions captured when the generator ran.
-pub fn toolchain_versions() -> (String, String) {
-  ("0.1.20261020", "v0.10.16+b1a0e846e")
+/// Generated from `moon version --all`. Keep in sync with the toolchain.
+pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo {
+  @PaiGack/moon_shadow/buildinfo.BuildInfo::from_toolchain({
+    moon_version: "0.1.20261020",
+    moonc_version: "v0.10.16+b1a0e846e",
+  })
 }
+

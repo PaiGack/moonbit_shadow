@@ -21,3 +21,15 @@ pub fn git_describe() -> String {
   }
   git.to_version_string()
 }
+
+///|
+/// The toolchain and variant this example was built with, as its own `shadow/`
+/// recorded them.
+///
+/// `build_info()` comes from the virtual package, the same way `current()` and
+/// `git()` do: this module's `overrides` points at its own `shadow/`, so the
+/// values are its own build's, not the library's.
+pub fn build_describe() -> String {
+  let build = @shadow.build_info()
+  "\{build.moon()} / \{build.moonc()} / \{build.profile} \{build.target}"
+}

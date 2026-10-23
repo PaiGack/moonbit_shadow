@@ -2,11 +2,14 @@
 package "PaiGack/moon_shadow"
 
 import {
+  "PaiGack/moon_shadow/buildinfo",
   "PaiGack/moon_shadow/gitinfo",
   "PaiGack/moon_shadow/mooninfo",
 }
 
 // Values
+pub fn build() -> @buildinfo.BuildInfo
+
 pub fn current() -> @mooninfo.ModuleInfo
 
 pub fn git() -> @gitinfo.GitInfo

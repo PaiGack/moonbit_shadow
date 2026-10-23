@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub let info : BuildInfo
+pub fn render_build_info(ToolchainInfo, pkg_path~ : String) -> String
 
 // Errors
 
@@ -16,13 +16,32 @@ pub(all) struct BuildInfo {
   moonc_version : String
   profile : String
   target : String
+  debug : String
+  release : String
 } derive(Eq, @debug.Debug)
 #deprecated
 pub fn BuildInfo::equal(Self, Self) -> Bool
+pub fn BuildInfo::from_toolchain(ToolchainInfo) -> Self
+pub fn BuildInfo::moon(Self) -> String
+pub fn BuildInfo::moonc(Self) -> String
 #deprecated
 pub fn BuildInfo::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn BuildInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) struct ToolchainInfo {
+  moon_version : String
+  moonc_version : String
+} derive(Eq, @debug.Debug)
+pub fn ToolchainInfo::empty() -> Self
+#deprecated
+pub fn ToolchainInfo::equal(Self, Self) -> Bool
+pub fn ToolchainInfo::moon(Self) -> String
+pub fn ToolchainInfo::moonc(Self) -> String
+#deprecated
+pub fn ToolchainInfo::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ToolchainInfo::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

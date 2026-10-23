@@ -1,6 +1,7 @@
 import {
   "PaiGack/moon_shadow/mooninfo",
   "PaiGack/moon_shadow/gitinfo",
+  "PaiGack/moon_shadow/buildinfo",
   "moonbitlang/x/fs",
   "moonbitlang/core/env",
   "moonbitlang/async",

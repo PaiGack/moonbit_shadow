@@ -1,5 +1,5 @@
 import {
-  "PaiGack/moon_shadow/shadow",
+  "PaiGack/moon_shadow/mooninfo",
 }
 
 options(
@@ -8,3 +8,5 @@ options(
     "profile_release.mbt": [ "release" ],
   },
 )
+
+pkgtype(kind: "library")

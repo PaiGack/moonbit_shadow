@@ -1,7 +1,7 @@
 # moon_shadow_example
 
-A module that reads **its own** `moon.mod` and git state at runtime through
-`moon_shadow`.
+A module that reads **its own** `moon.mod`, git state and build variant at
+runtime through `moon_shadow`.
 
 ```moonbit nocheck
 let info = @moon_shadow.current()
@@ -11,6 +11,11 @@ println(info.version) // "999.999.999"
 let git = @moon_shadow.git()
 println(git.branch)                  // "main"
 println(git.to_version_string())     // "main <short-commit>", "-dirty" if tracked files changed
+
+let build = @moon_shadow.build()
+println(build.moon())                 // "moon 0.1.20261020"
+println(build.profile)                // "debug" or "release"
+println(build.target)                 // "wasm-gc", "js", "native"...
 ```
 
 Run it from this directory:
@@ -25,7 +30,7 @@ and `native` too.
 
 ## How the metadata gets in
 
-Both values are baked in at build time: `moon_shadow` reads metadata through
+Every value is baked in at build time: `moon_shadow` reads metadata through
 the virtual package `PaiGack/moon_shadow/shadow`. This module implements it in
 `shadow/` and points `overrides` at that package:
 
