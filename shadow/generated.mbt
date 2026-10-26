@@ -26,10 +26,10 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
     available: true,
     branch: "main",
     tag: "",
-    describe: "7f719f3",
-    commit: "7f719f3bedabb980b66becd7f8a28bfc99f39ef0",
-    short_commit: "7f719f3",
-    commit_date: "2026-10-23T18:46:00+08:00",
+    describe: "024004e",
+    commit: "024004e3d1eccacbd3fea8fcfe7a80735563301f",
+    short_commit: "024004e",
+    commit_date: "2026-10-23T18:54:18+08:00",
     author: "rzhangsan",
     email: "4iNtJYlBfhr1QT8bkeMawE+rzhangsan@noreply.cnb.cool",
     dirty: true,
@@ -42,8 +42,8 @@ pub fn git_info() -> @PaiGack/moon_shadow/gitinfo.GitInfo {
 /// Generated from `moon version --all`. Keep in sync with the toolchain.
 pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo {
   @PaiGack/moon_shadow/buildinfo.BuildInfo::from_toolchain({
-    moon_version: "0.1.20261020",
-    moonc_version: "v0.10.16+b1a0e846e",
+    moon_version: "0.1.20261023",
+    moonc_version: "v0.10.17+d971670cd",
   })
 }
 
