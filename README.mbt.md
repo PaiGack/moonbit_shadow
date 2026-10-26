@@ -179,3 +179,8 @@ pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo {
   包括 release，因为 pre-build 规则并非 debug 专用。提交
   `generated.mbt` 可以把损失限制在「克隆之后又去改 `moon.mod`」
   的场景。
+- **`git_info()` 不进 CI 比对。** 它记的是「跑生成器那次构建」的 commit、
+  提交日期和 `dirty`，两份构建不可能一致：PR 的合并提交不等于作者生成时
+  用的提交，CI 里的检出版本也不等于 `HEAD`。所以 CI 只比 `module_info()`
+  （由 `moon.mod` 决定）和 `build_info()`（由工具链决定），`git_info()`
+  整块跳过——见 `scripts/diff-generated.sh`。
