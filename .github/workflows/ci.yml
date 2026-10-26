@@ -38,10 +38,15 @@ jobs:
               exit 1
             }
           done
-      - name: The generator compiles for every target
-        # No target-specific code is left in `gen`, so a target that did not
-        # compile would mean a shim crept back in.
+      - name: The generator itself compiles
+        # `gen` starts processes (`git`, `moon version`), so its `moon.pkg` pins
+        # `supported_targets = "native"` and other backends are absent by
+        # design. Check the one target that is declared, and fail loudly if that
+        # ever stops being native — if gen does go portable, this is the step
+        # that should start proving it.
         run: |
-          for target in js wasm-gc native; do
-            moon check --target "$target" --target-dir "_build/gen-$target" gen
-          done
+          grep -q 'supported_targets = "native"' gen/moon.pkg || {
+            echo "::error file=gen/moon.pkg::gen is no longer native-only; widen this step"
+            exit 1
+          }
+          moon check --target native --target-dir _build/gen-native gen

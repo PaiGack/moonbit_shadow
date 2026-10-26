@@ -9,6 +9,8 @@ import {
   "moonbitlang/async/process",
 }
 
+// The generator starts a process to ask `git` and `moon`, so it is native only.
+// `moon check --target js gen` therefore fails by design — see README.
 supported_targets = "native"
 
 pkgtype(kind: "executable")
