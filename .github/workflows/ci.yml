@@ -23,17 +23,17 @@ jobs:
         run: |
           moon check --target wasm-gc
           moon test --target wasm-gc
-      - name: Generated file must match `moon.mod` and the checkout
-        # Both halves are now deterministic: `module_info()` is a pure function
-        # of `moon.mod`, and `git_info()` is read from this very checkout, so a
-        # fresh clone reproduces the committed file byte for byte. Diffing the
-        # whole file is what catches a generator that silently stops reading a
-        # field.
+      - name: Generated file must match `moon.mod` and the toolchain
+        # `git_info()` is not compared. It records the commit that happened to
+        # run the generator, so two builds can never agree on it — and a PR's
+        # merge commit differs from the one its author generated from. What is
+        # compared is everything else in the file: `module_info()` from
+        # `moon.mod` and `build_info()` from the installed toolchain.
         run: |
           moon check
           for f in shadow/generated.mbt moon_shadow_example/shadow/generated.mbt; do
-            git show "HEAD:$f" > /tmp/want.mbt
-            diff -u /tmp/want.mbt "$f" || {
+            git show "HEAD:$f" > /tmp/committed.mbt
+            scripts/diff-generated.sh /tmp/committed.mbt "$f" || {
               echo "::error file=$f::generated file is stale; run moon check and commit"
               exit 1
             }
