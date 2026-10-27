@@ -1,7 +1,12 @@
 ///|
 /// The `.git` reader, re-exported: reading a checkout is `gitx/gitz/repo`'s
 /// job, but the value it produces is part of *this* package's surface.
-pub using @repo {type Checkout, type RepoInfo, type RepoLocate}
+pub using @repo {
+  type Checkout,
+  type RepoInfo,
+  type RepoLocate,
+  type CheckoutReason,
+}
 
 ///|
 /// The checkout at `cwd`, read out of the files `git` itself would read.

@@ -43,6 +43,8 @@ pub fn GitInfo::to_version_string(Self) -> String
 // Type aliases
 pub using @repo {type Checkout}
 
+pub using @repo {type CheckoutReason}
+
 pub using @repo {type RepoInfo}
 
 pub using @repo {type RepoLocate}

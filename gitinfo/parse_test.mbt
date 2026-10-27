@@ -3,6 +3,7 @@ fn sample() -> @gitinfo.RepoInfo {
   {
     available: true,
     locate: Ok,
+    reason: @gitinfo.CheckoutReason::Found,
     branch: "main",
     tag: "v0.1.1",
     describe: "v0.1.1",

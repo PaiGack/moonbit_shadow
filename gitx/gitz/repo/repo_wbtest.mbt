@@ -109,3 +109,50 @@ test "an index entry is read back as its path and blob" {
   assert_eq(entries[0].blob, "ce013625030ba8dba906f756967f9e9ca394464a")
   assert_eq(entries[0].mode, 0o100644)
 }
+
+///|
+/// `.git` that is there and names nothing readable is not "no repository":
+/// the two used to be told apart only by `locate`, and a caller that printed
+/// one line per case printed the wrong one for a half-written clone.
+test "an unreadable HEAD keeps its reason" {
+  let dir = fresh_dir("reason-head")
+  // A `.git` that is only a `HEAD` is not a repository `discover` will take:
+  // it wants a directory. Make one, with a `HEAD` nobody can resolve.
+  @fs.create_dir(dir + "/.git") catch {
+    _ => ()
+  }
+  write(dir, ".git/HEAD", "ref: refs/heads/main\n")
+  let checkout = read_checkout(dir)
+  assert_eq(checkout.locate, Unreadable)
+  assert_eq(checkout.reason, CheckoutReason::HeadUnreadable)
+  assert_eq(checkout.to_repo_info().available, false)
+}
+
+///|
+/// Walking up from a directory with no `.git` anywhere near it.
+test "no .git on the way up says so" {
+  let dir = fresh_dir("reason-missing")
+  let checkout = read_checkout(dir)
+  assert_eq(checkout.locate, Missing)
+  assert_eq(checkout.reason, CheckoutReason::NoDotGit)
+  assert_eq(checkout.to_repo_info().reason, CheckoutReason::NoDotGit)
+}
+
+///|
+fn fresh_dir(name : String) -> String {
+  let dir = "/tmp/moon_shadow_test_" + name
+  if !@fs.path_exists(dir) {
+    @fs.create_dir(dir) catch {
+      _ => ()
+    }
+  }
+  dir
+}
+
+///|
+fn write(dir : String, relative : String, content : String) -> Unit {
+  let path = dir + "/" + relative
+  @fs.write_string_to_file(path, content) catch {
+    _ => ()
+  }
+}
