@@ -149,8 +149,15 @@ pub fn build_info() -> @PaiGack/moon_shadow/buildinfo.BuildInfo {
   [`gitinfo`](./gitinfo/) 只在上面两条之外收口：定义 `GitInfo`、把 `RepoInfo`
   收成 `GitInfo`，并对外给出稳定的版本字符串。
 
-  生成器不判断平台：能不能启动进程，试一次就知道了。`git` 调用失败（没装、
-  不在仓库里、退出码非 0）就回退，两条路的产出是同一个 `GitInfo` 类型。
+  生成器不判断平台：能不能启动进程，试一次就知道了。但「启动不了」和「跑了
+  但说不」是两回事，`gen` 只在**前者**回退：
+  - `git` 根本起不来（没装、`cwd` 不存在）→ `gitx/gitcli` 返回 `None`，回退读 `.git`；
+  - `git` 起了但退出码非 0（`fatal: not a git repository`）→ 这是答案，直接
+    `available = false`，不再回头读 `.git`。`.git` 就在同一个目录里，`git`
+    说没有，读文件不会给出第二个结论，只会打出两行互相矛盾的话。
+
+  两条路的产出是同一个 `GitInfo` 类型；`RepoInfo.reason`（`NoDotGit` /
+  `HeadUnreadable` / `GitRefused` / `Found`）记下是哪一步得出的结论。
 
 ## 需要了解的行为
 

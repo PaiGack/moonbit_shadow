@@ -37,15 +37,25 @@ priv enum Head {
 pub fn read_checkout(cwd : String) -> Checkout {
   let repo = match discover(cwd) {
     Some(repo) => repo
-    None => return { locate: Missing, repo: None, }
+    None =>
+      return { locate: Missing, repo: None, reason: CheckoutReason::NoDotGit, }
   }
   // A `HEAD` that names nothing is a half-written clone. Its refs are stale by
   // definition, and a stale version number is worse than none.
   let head = match repo.read_head() {
     Some(head) => head
-    None => return { locate: Unreadable, repo: None, }
+    None =>
+      return {
+        locate: Unreadable,
+        repo: None,
+        reason: CheckoutReason::HeadUnreadable,
+      }
   }
-  { locate: Ok, repo: Some(Head::to_repo_info(head, repo)), }
+  {
+    locate: Ok,
+    repo: Some(Head::to_repo_info(head, repo)),
+    reason: CheckoutReason::Found,
+  }
 }
 
 ///|
@@ -59,6 +69,8 @@ pub(all) struct Checkout {
   locate : RepoLocate
   /// `None` exactly when `locate` is not `Ok`.
   repo : RepoInfo?
+  /// Why `repo` is `None`, for the caller that has to print a line about it.
+  reason : CheckoutReason
 }
 
 ///|
@@ -272,6 +284,7 @@ fn Head::to_repo_info(self : Head, repo : Repo) -> RepoInfo {
   {
     available: true,
     locate: Ok,
+    reason: CheckoutReason::Found,
     branch,
     tag,
     describe: if !tag.is_empty() {
@@ -333,6 +346,9 @@ fn is_hex(text : StringView) -> Bool {
 pub(all) struct RepoInfo {
   available : Bool
   locate : RepoLocate
+  /// The same information as `locate`, in words: `locate` says what the reader
+  /// found, this says what it gave up on.
+  reason : CheckoutReason
   branch : String
   tag : String
   describe : String
@@ -375,11 +391,44 @@ pub extend RepoLocate with Eq::{not_equal, equal}
 pub extend RepoLocate with Debug::{to_repr}
 
 ///|
+/// Why a `.git` read produced no commit.
+///
+/// A `.git` that is there and names nothing readable is not the same as
+/// "there is no repository": the first is a broken state the user can fix, the
+/// second is normal for a source tarball. `locate` already tells the two
+/// apart; this says which step failed, so the generator can print one line
+/// that is true instead of falling back to a reader that will say "missing".
+pub(all) enum CheckoutReason {
+  /// `discover` walked to `/` without finding `.git`.
+  NoDotGit
+  /// `.git` exists but `HEAD` names no commit this reader can resolve.
+  HeadUnreadable
+  /// The git command answered; the checkout is not this reader's business.
+  /// `git` knows about `GIT_DIR`, bare repositories and shallow clones, so
+  /// "`git` said no" is an answer, not a failure to read `.git`.
+  GitRefused
+  /// The files were read.
+  Found
+} derive(Eq, Debug)
+
+///|
+#deprecated
+pub extend CheckoutReason with Eq::{not_equal, equal}
+
+///|
+#deprecated
+pub extend CheckoutReason with Debug::{to_repr}
+
+///|
 /// The "nothing here" value, with the reason it is empty.
-pub fn RepoInfo::empty(locate~ : RepoLocate = Missing) -> RepoInfo {
+pub fn RepoInfo::empty(
+  locate~ : RepoLocate = Missing,
+  reason~ : CheckoutReason = CheckoutReason::NoDotGit,
+) -> RepoInfo {
   {
     available: false,
     locate,
+    reason,
     branch: "",
     tag: "",
     describe: "",

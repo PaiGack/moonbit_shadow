@@ -8,61 +8,83 @@
 /// the file reader for the machines where the command is missing.
 ///
 /// Nothing here inspects the platform: whether a process can be started at all
-/// is answered by trying it. `None` means "no usable `git`", and every failure
-/// along the way — not installed, not a repository, an unreadable work tree —
-/// is that same answer, because the caller's next move is the same for all of
-/// them.
+/// is answered by trying it. `None` means "no usable `git`" — and that is only
+/// said when the command could not be *started*. A `git` that ran and refused
+/// (exit 128, `fatal: not a git repository`) is an answer, and it comes back as
+/// `available = false` with `reason = GitRefused`, so the caller does not go
+/// on to read `.git` and contradict it.
+///
+/// The exit code is read, not raised: a raised error used to skip everything
+/// below it, and the `git status` at the end of a successful read never ran.
 pub async fn read_repo_info(cwd : String) -> @gitinfo.RepoInfo? {
   // The one call that decides whether there is a `git` to talk to at all.
   // Everything after it either has an answer or a default.
-  let root = git(["rev-parse", "--show-toplevel"], cwd) catch {
-    _ => return None
+  let (status, stdout) = match
+    run(["rev-parse", "--show-toplevel", "--git-dir"], cwd) {
+    Some(output) => output
+    None => return None
   }
-  guard !root.is_empty() else { return None }
-  let commit = git(["rev-parse", "HEAD"], cwd) catch { _ => return None }
-  guard is_hex(commit) else { return None }
+  // Not a repository, a bare repository, a work tree git cannot enter: git
+  // says why on stderr and exits non-zero, and there is nothing to report as
+  // metadata. `--git-dir` rides along so the bare case is one call, not two.
+  guard status == 0 else {
+    return Some(@gitinfo.RepoInfo::empty(reason=GitRefused))
+  }
+  let lines = non_empty_lines(stdout)
+  guard lines.length() >= 1 && !lines[0].is_empty() else {
+    return Some(@gitinfo.RepoInfo::empty(reason=GitRefused))
+  }
+  let commit = match git(["rev-parse", "HEAD"], cwd) {
+    Some(output) => output
+    None => return Some(@gitinfo.RepoInfo::empty(reason=GitRefused))
+  }
+  // `git init` followed by nothing has a `HEAD` and no commit: an answer, with
+  // no commit worth printing.
+  guard is_hex(commit) else {
+    return Some(@gitinfo.RepoInfo::empty(reason=GitRefused))
+  }
   // A bare repository has no work tree, so there is no "dirty" to report and
   // no branch to be on. `gitx/gitz/repo` would say the same: the index comparison
   // needs a work tree.
-  let is_bare = git(["rev-parse", "--is-bare-repository"], cwd) catch {
-    _ => ""
-  }
-  let bare = is_bare == "true"
+  let bare = lines.length() >= 2 &&
+    (trim(lines[1]).has_prefix(".git") || trim(lines[1]) == "")
   // Author, e-mail, ISO date, decoration — in that order, so the decoration
   // comes last and can hold anything.
   // `%x09` rather than a literal tab keeps the format string printable, and
   // `--no-show-signature` keeps a signed commit's gpg noise out of the line.
-  let fields = git(
-    [
-      "log", "-1", "--no-show-signature", "--date=iso-strict", "--format=%an%x09%ae%x09%cI%x09%D",
-    ],
-    cwd,
-  ) catch {
-    _ => return None
+  let fields = match
+    git(
+      [
+        "log", "-1", "--no-show-signature", "--date=iso-strict", "--format=%an%x09%ae%x09%cI%x09%D",
+      ],
+      cwd,
+    ) {
+    Some(output) => output
+    None => ""
   }
   let parsed = split_fields(fields)
   let (ahead, behind) = track_counts(
-    git(["rev-list", "--left-right", "--count", "HEAD...@{upstream}"], cwd) catch {
-      _ => ""
-    },
+    opt(git(["rev-list", "--left-right", "--count", "HEAD...@{upstream}"], cwd)),
   )
   // `git describe` fails on a repository with no commit at all and shortens a
   // shallow one. Both are answers, so the fallback is the commit id the file reader
   // would also settle on.
-  let described = git(["describe", "--tags", "--always"], cwd) catch { _ => "" }
-  let short_commit = git(["rev-parse", "--short", "HEAD"], cwd) catch {
-    _ => short_of(commit)
+  let described = opt(git(["describe", "--tags", "--always"], cwd))
+  let short_commit = opt(git(["rev-parse", "--short", "HEAD"], cwd))
+  let short_commit = if short_commit.is_empty() {
+    short_of(commit)
+  } else {
+    short_commit
   }
   let info : @gitinfo.RepoInfo = {
     available: true,
     locate: @gitinfo.RepoLocate::Ok,
+    reason: @gitinfo.CheckoutReason::Found,
     // Fails on a detached HEAD, which is exactly when there is no branch.
     branch: if bare {
       ""
     } else {
-      git(["symbolic-ref", "--short", "-q", "HEAD"], cwd) catch {
-        _ => ""
-      }
+      opt(git(["symbolic-ref", "--short", "-q", "HEAD"], cwd))
     },
     tag: tag_of(parsed[3]),
     describe: if described.is_empty() {
@@ -92,26 +114,68 @@ pub async fn read_repo_info(cwd : String) -> @gitinfo.RepoInfo? {
 /// Whether tracked files differ from `HEAD`. `git status` that fails is read as
 /// "clean": a version string is not worth failing a build over.
 async fn dirty(cwd : String) -> Bool {
-  let status = git(["status", "--porcelain", "--untracked-files=no"], cwd) catch {
-    _ => ""
+  match run(["status", "--porcelain", "--untracked-files=no"], cwd) {
+    Some((0, stdout)) => trim(stdout).length() > 0
+    // A `git status` that failed is read as "clean", as before: a version
+    // string is not worth failing a build over.
+    _ => false
   }
-  status.length() > 0
 }
 
 ///|
-/// `git <args>` in `cwd`, trimmed. Whatever came back is a value: a non-zero
-/// exit is a `raise`, so callers only deal with the text they asked for.
-async fn git(args : Array[String], cwd : String) -> String {
-  let (status, stdout) = @process.collect_stdout(
+/// `git <args>` in `cwd`, trimmed, or `None` when it exited non-zero.
+///
+/// The exit code comes back beside the text instead of in place of it:
+/// `rev-parse --show-toplevel --git-dir` answers with two lines on success and
+/// with `fatal: not a git repository` on failure, and which of the two it was
+/// is the whole question the caller is asking.
+async fn git(args : Array[String], cwd : String) -> String? {
+  match run(args, cwd) {
+    Some((0, stdout)) => Some(trim(stdout))
+    _ => None
+  }
+}
+
+///|
+fn opt(value : String?) -> String {
+  match value {
+    Some(text) => text
+    None => ""
+  }
+}
+
+///|
+/// `git <args>` in `cwd`: the exit code and whatever it printed on stdout.
+///
+/// `None` when the process could not be started at all — no `git` on `PATH`,
+/// no such `cwd`. That is the only kind of failure this function raises about
+/// on the caller's behalf: a git that ran and refused is `Some((128, ""))`,
+/// because the caller's next move is different from "no git here".
+async fn run(args : Array[String], cwd : String) -> (Int32, String)? {
+  let output = @process.collect_output(
     "git",
     args,
     cwd~,
     no_console_window=true,
-  )
-  if status != 0 {
-    raise Failure("git \{args.join(" ")} exited with \{status}")
+  ) catch {
+    _ => return None
   }
-  stdout.text()
+  let (status, stdout, _stderr) = output
+  Some((status, stdout.text()))
+}
+
+///|
+/// `git` output as lines, blank ones dropped: `rev-parse` prints one line per
+/// argument and the list is read by position.
+fn non_empty_lines(text : String) -> Array[String] {
+  let lines : Array[String] = []
+  for line in text.split("\n") {
+    let entry = trim(line)
+    if !entry.is_empty() {
+      lines.push(entry)
+    }
+  }
+  lines
 }
 
 ///|

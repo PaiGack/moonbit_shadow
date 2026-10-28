@@ -24,8 +24,22 @@ pub fn trim(StringView) -> String
 pub(all) struct Checkout {
   locate : RepoLocate
   repo : RepoInfo?
+  reason : CheckoutReason
 }
 pub fn Checkout::to_repo_info(Self) -> RepoInfo
+
+pub(all) enum CheckoutReason {
+  NoDotGit
+  HeadUnreadable
+  GitRefused
+  Found
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn CheckoutReason::equal(Self, Self) -> Bool
+#deprecated
+pub fn CheckoutReason::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CheckoutReason::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Commit {
   date : String
@@ -46,6 +60,7 @@ pub fn Repo::read_ref(Self, String, Int32) -> String
 pub(all) struct RepoInfo {
   available : Bool
   locate : RepoLocate
+  reason : CheckoutReason
   branch : String
   tag : String
   describe : String
@@ -58,7 +73,7 @@ pub(all) struct RepoInfo {
   ahead : Int32
   behind : Int32
 } derive(Eq, @debug.Debug)
-pub fn RepoInfo::empty(locate? : RepoLocate) -> Self
+pub fn RepoInfo::empty(locate? : RepoLocate, reason? : CheckoutReason) -> Self
 #deprecated
 pub fn RepoInfo::equal(Self, Self) -> Bool
 #deprecated

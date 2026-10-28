@@ -52,3 +52,29 @@ test "short_of keeps seven characters" {
   assert_eq(short_of("6a42542c0a9432eef9080436203144f42c1b3475"), "6a42542")
   assert_eq(short_of("abc"), "abc")
 }
+
+///|
+/// A `git` that ran and refused is an answer, not "no git here".
+///
+/// This is the shape the bug took: `read_repo_info` raised out of the first
+/// `git` call, `gen` read that `None` as "the command is missing" and fell back
+/// to the `.git` reader, which found nothing and printed a second line
+/// contradicting the first.
+test "non_empty_lines reads rev-parse output by position" {
+  let lines = non_empty_lines("/repo\n/repo/.git\n")
+  assert_eq(lines.length(), 2)
+  assert_eq(lines[0], "/repo")
+  assert_eq(lines[1], "/repo/.git")
+}
+
+///|
+test "blank rev-parse output is no lines" {
+  assert_eq(non_empty_lines("\n\n").length(), 0)
+  assert_eq(non_empty_lines("").length(), 0)
+}
+
+///|
+test "opt flattens a refused call to empty" {
+  assert_eq(opt(Some("main")), "main")
+  assert_eq(opt(None), "")
+}
